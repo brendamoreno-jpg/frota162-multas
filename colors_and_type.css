@@ -1,0 +1,284 @@
+/* =============================================================================
+   Frota162 Design System — Core tokens
+   Source of truth: frota-ds codebase (src/styles/_theme.scss)
+   Use via CSS variables; everything maps 1:1 with the production tokens.
+   ============================================================================= */
+
+/* ---- Fonts ----------------------------------------------------------------- */
+@font-face {
+  font-family: 'Inter';
+  src: url('fonts/Inter-VariableFont_opsz,wght.ttf') format('truetype-variations');
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Inter';
+  src: url('fonts/Inter-Italic-VariableFont_opsz,wght.ttf') format('truetype-variations');
+  font-weight: 100 900;
+  font-style: italic;
+  font-display: swap;
+}
+
+:root {
+  /* === BRAND ============================================================== */
+  --color-brand-primary-darkest: #431107;
+  --color-brand-primary-dark:    #B02D13;
+  --color-brand-primary-pure:    #F9401B;
+  --color-brand-primary-light:   #FCA392;
+  --color-brand-primary-lightest:#FEE0DB;
+
+  --color-brand-secondary-darkest: #08150B;
+  --color-brand-secondary-dark:    #16371D;
+  --color-brand-secondary-pure:    #1F4D29;
+  --color-brand-secondary-light:   #8CC194;
+  --color-brand-secondary-lightest:#CAFFD3;
+
+  /* === PRIMARY SCALE (brand red/orange) =================================== */
+  --color-primary-100:  #fffbfb;
+  --color-primary-200:  #feece8;
+  --color-primary-300:  #fed9d1;
+  --color-primary-400:  #fdb3a4;
+  --color-primary-500:  #f9401b;  /* brand pure */
+  --color-primary-600:  #c73316;
+  --color-primary-700:  #952610;
+  --color-primary-800:  #641a0b;
+  --color-primary-900:  #320d05;
+  --color-primary-1000: #270c06;
+
+  /* === SECONDARY SCALE (muted green) ====================================== */
+  --color-secondary-100:  #f3f9f4;
+  --color-secondary-200:  #e8f3ea;
+  --color-secondary-300:  #d1e6d4;
+  --color-secondary-400:  #a3cda9;
+  --color-secondary-500:  #8cc194;
+  --color-secondary-600:  #739f79;
+  --color-secondary-700:  #597d5f;
+  --color-secondary-800:  #405c44;
+  --color-secondary-900:  #263a2a;
+  --color-secondary-1000: #1a291c;
+
+  /* === NEUTRAL ============================================================ */
+  --color-neutral-100:  #ffffff;
+  --color-neutral-200:  #fafafa;
+  --color-neutral-300:  #eceded;
+  --color-neutral-400:  #ddddde;
+  --color-neutral-500:  #bebec0;
+  --color-neutral-600:  #9f9fa2;
+  --color-neutral-700:  #606266;
+  --color-neutral-800:  #4d4e52;
+  --color-neutral-900:  #262729;
+  --color-neutral-1000: #0a0a0a;
+
+  /* === INFORMATION / BLUE ================================================= */
+  --color-information-100:  #eaf3fd;
+  --color-information-200:  #d4e7fc;
+  --color-information-300:  #aad0f9;
+  --color-information-400:  #7fb8f5;
+  --color-information-500:  #55a1f2;
+  --color-information-600:  #2a89ef;
+  --color-information-700:  #226ebf;
+  --color-information-800:  #19528f;
+  --color-information-900:  #113760;
+  --color-information-1000: #081b30;
+
+  /* === SUCCESS / GREEN ==================================================== */
+  --color-success-100:  #e8f9f2;
+  --color-success-200:  #d0f2e4;
+  --color-success-300:  #a1e5c9;
+  --color-success-400:  #73d8ae;
+  --color-success-500:  #44cb93;
+  --color-success-600:  #15be78;
+  --color-success-700:  #119860;
+  --color-success-800:  #0d7248;
+  --color-success-900:  #084c30;
+  --color-success-1000: #042618;
+
+  /* === ERROR / RED ======================================================== */
+  --color-error-100:  #fde9eb;
+  --color-error-200:  #fad2d6;
+  --color-error-300:  #f5a5ad;
+  --color-error-400:  #f07884;
+  --color-error-500:  #eb4b5b;
+  --color-error-600:  #e61e32;
+  --color-error-700:  #b81828;
+  --color-error-800:  #8a121e;
+  --color-error-900:  #5c0c14;
+  --color-error-1000: #2e060a;
+
+  /* === WARNING / YELLOW =================================================== */
+  --color-warning-100:  #fef7e7;
+  --color-warning-200:  #feeecf;
+  --color-warning-300:  #fddd9f;
+  --color-warning-400:  #fbcd70;
+  --color-warning-500:  #fabc40;
+  --color-warning-600:  #f9ab10;
+  --color-warning-700:  #c7890d;
+  --color-warning-800:  #95670a;
+  --color-warning-900:  #644406;
+  --color-warning-1000: #322203;
+
+  /* === SEMANTIC ALIASES =================================================== */
+  --color-background-default: var(--color-neutral-100);
+  --color-background-alt:     var(--color-neutral-200);
+  --color-background-inverse: var(--color-neutral-900);
+
+  --color-text-default:   var(--color-neutral-700);
+  --color-text-strong:    var(--color-neutral-1000);
+  --color-text-secondary: var(--color-neutral-500);
+  --color-text-inverse:   var(--color-neutral-100);
+
+  --color-border-default: var(--color-neutral-400);
+  --color-border-hover:   var(--color-primary-500);
+  --color-border-focus:   var(--color-primary-500);
+
+  --color-feedback-success: var(--color-success-600);
+  --color-feedback-error:   var(--color-error-600);
+  --color-feedback-warning: var(--color-warning-600);
+  --color-feedback-info:    var(--color-information-600);
+
+  /* === SPACING (base unit: 2px) ========================================== */
+  --spacing-0:   0px;
+  --spacing-1x:  2px;
+  --spacing-2x:  4px;
+  --spacing-4x:  8px;
+  --spacing-6x:  12px;
+  --spacing-8x:  16px;
+  --spacing-10x: 20px;
+  --spacing-12x: 24px;
+  --spacing-16x: 32px;
+  --spacing-20x: 40px;
+  --spacing-24x: 48px;
+  --spacing-28x: 56px;
+  --spacing-32x: 64px;
+  --spacing-40x: 80px;
+
+  --padding-0: 0; --padding-1x: 2px; --padding-2x: 4px; --padding-4x: 8px;
+  --padding-6x: 12px; --padding-8x: 16px; --padding-10x: 20px; --padding-12x: 24px;
+  --padding-16x: 32px; --padding-20x: 40px; --padding-24x: 48px;
+  --gap-0: 0; --gap-1x: 2px; --gap-2x: 4px; --gap-4x: 8px; --gap-6x: 12px;
+  --gap-8x: 16px; --gap-10x: 20px; --gap-12x: 24px; --gap-16x: 32px;
+
+  /* === BORDER RADIUS ===================================================== */
+  --border-radius-none: 0;
+  --border-radius-xsm:  4px;
+  --border-radius-sm:   8px;
+  --border-radius-md:   16px;
+  --border-radius-lg:   24px;
+  --border-radius-pill: 500px;
+
+  /* === BORDER WIDTH ====================================================== */
+  --border-width-none: 0;
+  --border-width-sm:   1px;
+  --border-width-md:   2px;
+  --border-width-lg:   4px;
+
+  /* === SHADOWS =========================================================== */
+  --shadow-none:    none;
+  --shadow-level-1: 2px 2px 8px  0 rgba(0,0,0,0.08);
+  --shadow-level-2: 2px 4px 24px 0 rgba(0,0,0,0.16);
+  --shadow-level-3: 2px 8px 32px 0 rgba(0,0,0,0.16);
+  --shadow-level-4: 2px 8px 48px 0 rgba(0,0,0,0.32);
+
+  /* === TYPOGRAPHY ======================================================== */
+  --font-family-primary: 'Inter', system-ui, -apple-system, sans-serif;
+
+  --font-weight-light:   300;
+  --font-weight-regular: 400;
+  --font-weight-medium:  600;
+  --font-weight-bold:    700;
+
+  --line-height-near:    1;
+  --line-height-compact: 1.2;
+  --line-height-far:     1.5;
+
+  /* Display */
+  --font-size-display-large:   56px;
+  --font-size-display-medium:  48px;
+  --font-size-display-small:   40px;
+  --line-height-display-large:  56px;
+  --line-height-display-medium: 48px;
+  --line-height-display-small:  40px;
+
+  /* Heading */
+  --font-size-h1: 32px;  --line-height-h1: 38.4px;
+  --font-size-h2: 24px;  --line-height-h2: 36px;
+  --font-size-h3: 20px;  --line-height-h3: 30px;
+  --font-size-h4: 18px;  --line-height-h4: 27px;
+  --font-size-h5: 16px;  --line-height-h5: 24px;
+
+  /* Body */
+  --font-size-body-large:  18px;  --line-height-body-large:  27px;
+  --font-size-body-medium: 16px;  --line-height-body-medium: 24px;
+  --font-size-body-small:  14px;  --line-height-body-small:  21px;
+  --font-size-body-xsmall: 12px;  --line-height-body-xsmall: 18px;
+
+  /* Caption */
+  --font-size-caption-medium: 12px; --line-height-caption-medium: 18px;
+  --font-size-caption-small:  10px; --line-height-caption-small:  14px;
+
+  --letter-spacing-tight:  -0.02em;
+  --letter-spacing-normal: 0;
+  --letter-spacing-wide:   0.05em;
+}
+
+/* =============================================================================
+   SEMANTIC ELEMENT STYLES — use these on plain HTML inside a .frota-doc scope
+   ============================================================================= */
+.frota-doc {
+  font-family: var(--font-family-primary);
+  font-size: var(--font-size-body-medium);
+  line-height: var(--line-height-body-medium);
+  color: var(--color-text-default);
+  background: var(--color-background-default);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+.frota-doc h1, .frota-display-lg {
+  font-size: var(--font-size-display-large);
+  line-height: var(--line-height-display-large);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-strong);
+  letter-spacing: var(--letter-spacing-tight);
+  margin: 0;
+}
+.frota-doc h2 {
+  font-size: var(--font-size-h1);
+  line-height: var(--line-height-h1);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-strong);
+  margin: 0;
+}
+.frota-doc h3 {
+  font-size: var(--font-size-h2);
+  line-height: var(--line-height-h2);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-strong);
+  margin: 0;
+}
+.frota-doc h4 {
+  font-size: var(--font-size-h3);
+  line-height: var(--line-height-h3);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-strong);
+  margin: 0;
+}
+.frota-doc p {
+  font-size: var(--font-size-body-medium);
+  line-height: var(--line-height-body-medium);
+  margin: 0;
+}
+.frota-doc small, .frota-caption {
+  font-size: var(--font-size-caption-medium);
+  line-height: var(--line-height-caption-medium);
+  color: var(--color-text-secondary);
+}
+.frota-doc code, .frota-doc pre {
+  font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: var(--font-size-body-small);
+  background: var(--color-neutral-200);
+  border: 1px solid var(--color-neutral-300);
+  border-radius: var(--border-radius-xsm);
+  padding: 1px 6px;
+  color: var(--color-neutral-900);
+}
