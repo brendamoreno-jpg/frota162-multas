@@ -1512,10 +1512,11 @@ function Header({ user = DEFAULT_USER, balanceValue = 'R$ 12.847,30', notificati
           <img src="assets/frota-logo-official.svg" alt="Frota 162" />
         </div>
 
-        {/* CENTER — promotional banner */}
-        <div className="frota-header__banner">
-          <Tag color="primary" accent="on">Plano Pro</Tag>
-          <span>Renovação em 23 dias · Aumente seu limite</span>
+        {/* CENTER — prototype warning banner */}
+        <div className="frota-header__banner" style={{ background: '#fff3cd', border: '1px solid #f5c542', borderRadius: 8, padding: '4px 16px', gap: 8 }}>
+          <span style={{ fontSize: 11, fontWeight: 800, color: '#7a4f00', letterSpacing: '0.04em', fontFamily: 'var(--font-family-primary)', textTransform: 'uppercase' }}>
+            ⚠️ ATENÇÃO: ISSO É UM PROTÓTIPO/SIMULAÇÃO, OS DADOS NÃO SÃO REAIS. NÃO COMPARTILHE
+          </span>
         </div>
 
         {/* RIGHT — actions */}
