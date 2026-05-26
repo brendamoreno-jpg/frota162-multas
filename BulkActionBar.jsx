@@ -1,8 +1,9 @@
 // BulkActionBar.jsx — Barra de ações em massa — Frota 162 DS (node 4056:6361)
 // Props:
-//   count          {number}  — quantos itens selecionados
-//   selectionType  {'na_only'|'np_only'|'mixed'}
-//   onClose        {fn}      — limpar seleção
+//   count          {number}                                — quantos itens selecionados
+//   selectionType  {'na_only'|'np_only'|'mixed'}           — tipo da seleção
+//   activeTab      {'todas'|'indicacao'|'pagamento'}       — tab ativa da listagem
+//   onClose        {fn}                                    — limpar seleção
 
 // ─── Ícones ───────────────────────────────────────────────────────────────────
 const BulkIconEraser = () => (
@@ -54,9 +55,35 @@ const BulkIconXCircle = () => (
     <line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/>
   </svg>
 );
+const BulkIconRefreshCcw = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <polyline points="1 4 1 10 7 10"/>
+    <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/>
+  </svg>
+);
+const BulkIconChevronDown = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <polyline points="6 9 12 15 18 9"/>
+  </svg>
+);
+const BulkIconCheck = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+    <polyline points="20 6 9 17 4 12"/>
+  </svg>
+);
+const BulkIconRotate = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><polyline points="3 3 3 8 8 8"/>
+  </svg>
+);
+const BulkIconFolder = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
+  </svg>
+);
 
-// ─── Botão individual ─────────────────────────────────────────────────────────
-function BulkBtn({ icon, label, disabled, tooltip, onClick }) {
+// ─── Botão individual (solto) ─────────────────────────────────────────────────
+function BulkBtn({ icon, label, disabled, tooltip, onClick, trailing }) {
   const [hov, setHov] = React.useState(false);
   const base = {
     display: 'inline-flex', alignItems: 'center', gap: 8,
@@ -74,7 +101,7 @@ function BulkBtn({ icon, label, disabled, tooltip, onClick }) {
     position: 'relative',
   };
 
-  const btn = (
+  return (
     <button
       style={base}
       disabled={disabled}
@@ -83,7 +110,9 @@ function BulkBtn({ icon, label, disabled, tooltip, onClick }) {
       onMouseLeave={() => setHov(false)}>
       {icon}
       {label}
-      {/* tooltip */}
+      {trailing && (
+        <span style={{ display: 'inline-flex', color: 'var(--color-neutral-600)', marginLeft: 2 }}>{trailing}</span>
+      )}
       {disabled && tooltip && hov && (
         <span style={{
           position: 'absolute', bottom: 'calc(100% + 6px)', left: '50%',
@@ -96,43 +125,319 @@ function BulkBtn({ icon, label, disabled, tooltip, onClick }) {
       )}
     </button>
   );
-
-  return btn;
 }
 
-// ─── Ações contextuais ────────────────────────────────────────────────────────
-function BulkActions({ selectionType }) {
-  if (selectionType === 'na_only') return (
-    <>
-      <BulkBtn icon={<BulkIconUser/>}       label="Indicar condutor" />
-      <BulkBtn icon={<BulkIconFileText/>}   label="Solicitar boleto SNE" />
-      <BulkBtn icon={<BulkIconPrint/>}      label="Imprimir" />
-      <BulkBtn icon={<BulkIconTag/>}        label="Status de tratamento" />
-    </>
-  );
-  if (selectionType === 'np_only') return (
-    <>
-      <BulkBtn icon={<BulkIconCreditCard/>} label="Solicitar pagamento em lote" />
-      <BulkBtn icon={<BulkIconDownload/>}   label="Baixar boletos" />
-      <BulkBtn icon={<BulkIconPrint/>}      label="Imprimir" />
-      <BulkBtn icon={<BulkIconTag/>}        label="Status de tratamento" />
-    </>
-  );
-  // mixed
+// ─── Dropdown agrupador ───────────────────────────────────────────────────────
+// Props:
+//   icon, label  — visual do botão
+//   items        — [{ icon, label, disabled?, tooltip?, checked?, onClick? }]
+//   align        — 'left' | 'right' (default 'left' = alinha pela borda esquerda do botão)
+function BulkDropdownBtn({ icon, label, items, align = 'left' }) {
+  const [open, setOpen] = React.useState(false);
+  const [pos, setPos] = React.useState({ top: 0, left: 0 });
+  const [hov, setHov] = React.useState(false);
+  const btnRef = React.useRef(null);
+
+  function toggle(e) {
+    e.stopPropagation();
+    if (!open && btnRef.current) {
+      const r = btnRef.current.getBoundingClientRect();
+      const MENU_MIN = 260;
+      const overflowsRight = r.left + MENU_MIN > window.innerWidth - 12;
+      const useRight = align === 'right' || overflowsRight;
+      if (useRight) {
+        setPos({ top: r.bottom + 4, left: r.right, anchor: 'right' });
+      } else {
+        setPos({ top: r.bottom + 4, left: r.left, anchor: 'left' });
+      }
+    }
+    setOpen((v) => !v);
+  }
+
+  React.useEffect(() => {
+    if (!open) return;
+    function onOutside(e) {
+      if (btnRef.current && !btnRef.current.contains(e.target)) setOpen(false);
+    }
+    function onKey(e) { if (e.key === 'Escape') setOpen(false); }
+    document.addEventListener('mousedown', onOutside);
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('mousedown', onOutside);
+      document.removeEventListener('keydown', onKey);
+    };
+  }, [open]);
+
+  const btnStyle = {
+    display: 'inline-flex', alignItems: 'center', gap: 8,
+    padding: '8px 12px',
+    background: open || hov ? 'var(--color-neutral-200)' : '#ffffff',
+    border: '1px solid var(--color-neutral-400)',
+    borderRadius: 8,
+    fontFamily: 'var(--font-family-primary)',
+    fontSize: 12, fontWeight: 700, lineHeight: '15px',
+    color: 'var(--color-neutral-1000)',
+    cursor: 'pointer',
+    whiteSpace: 'nowrap',
+    transition: 'background .12s',
+    flexShrink: 0,
+    position: 'relative',
+  };
+
+  const dropdownStyle = {
+    position: 'fixed', zIndex: 9999, background: '#fff',
+    border: '1px solid #ddddde', borderRadius: 8, padding: 2,
+    boxShadow: '0 4px 16px rgba(0,0,0,0.12)', minWidth: 240,
+    animation: 'fadeInOverlay .12s ease', fontFamily: 'var(--font-family-primary)',
+  };
+  const itemStyle = {
+    display: 'flex', alignItems: 'center', gap: 8, padding: '8px 8px',
+    borderRadius: 6, border: 'none', background: 'transparent',
+    cursor: 'pointer', width: '100%', textAlign: 'left',
+    fontSize: 14, fontWeight: 400, color: '#0a0a0a',
+    fontFamily: 'var(--font-family-primary)', transition: 'background .1s',
+  };
+
   return (
-    <>
-      <BulkBtn icon={<BulkIconPrint/>}      label="Imprimir" />
-      <BulkBtn icon={<BulkIconTag/>}        label="Status de tratamento" />
-      <BulkBtn icon={<BulkIconXCircle/>}    label="Inativar" />
-      <BulkBtn icon={<BulkIconUser/>}       label="Indicar condutor"        disabled tooltip="Disponível apenas para Indicação de Condutor" />
-      <BulkBtn icon={<BulkIconCreditCard/>} label="Solicitar pagamento"     disabled tooltip="Disponível apenas para Infrações a Pagar" />
-    </>
+    <span ref={btnRef} style={{ display: 'inline-flex', position: 'relative' }}>
+      <button
+        style={btnStyle}
+        onClick={toggle}
+        onMouseEnter={() => setHov(true)}
+        onMouseLeave={() => setHov(false)}>
+        {icon}
+        {label}
+        <span style={{
+          display: 'inline-flex', color: 'var(--color-neutral-600)',
+          marginLeft: 2,
+          transform: open ? 'rotate(180deg)' : 'rotate(0)',
+          transition: 'transform .15s',
+        }}>
+          <BulkIconChevronDown/>
+        </span>
+      </button>
+
+      {open && ReactDOM.createPortal(
+        <div
+          style={{
+            ...dropdownStyle,
+            top: pos.top,
+            ...(pos.anchor === 'right'
+              ? { left: pos.left, transform: 'translateX(-100%)' }
+              : { left: pos.left }),
+          }}
+          onClick={(e) => e.stopPropagation()}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 2, padding: '6px 4px' }}>
+            {items.map((item, idx) => (
+              <BulkDropdownItem
+                key={item.label + idx}
+                item={item}
+                onClose={() => setOpen(false)}
+                itemStyle={itemStyle} />
+            ))}
+          </div>
+        </div>,
+        document.body,
+      )}
+    </span>
   );
+}
+
+function BulkDropdownItem({ item, onClose, itemStyle }) {
+  const [hov, setHov] = React.useState(false);
+  const disabled = !!item.disabled;
+  const bg = disabled
+    ? 'transparent'
+    : hov ? 'var(--color-neutral-100)' : 'transparent';
+
+  return (
+    <button
+      onClick={(e) => {
+        if (disabled) return;
+        e.stopPropagation();
+        item.onClick && item.onClick();
+        onClose();
+      }}
+      onMouseEnter={() => setHov(true)}
+      onMouseLeave={() => setHov(false)}
+      disabled={disabled}
+      style={{
+        ...itemStyle,
+        background: bg,
+        cursor: disabled ? 'not-allowed' : 'pointer',
+        color: disabled ? 'var(--color-neutral-500)' : '#0a0a0a',
+        position: 'relative',
+      }}>
+      <span style={{
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        width: 24, height: 24, flexShrink: 0,
+        color: disabled ? 'var(--color-neutral-500)' : '#f9401b',
+      }}>
+        {item.icon}
+      </span>
+      <span style={{ flex: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+        {item.label}
+      </span>
+      {item.checked && (
+        <span style={{ color: '#f9401b', flexShrink: 0, marginLeft: 8 }}>
+          <BulkIconCheck/>
+        </span>
+      )}
+      {disabled && item.tooltip && hov && (
+        <span style={{
+          position: 'absolute', top: '50%', right: 'calc(100% + 8px)',
+          transform: 'translateY(-50%)',
+          background: '#1c1c1e', color: '#fff',
+          fontSize: 11, padding: '4px 8px', borderRadius: 4,
+          whiteSpace: 'nowrap', zIndex: 99999, pointerEvents: 'none',
+          fontFamily: 'var(--font-family-primary)',
+        }}>{item.tooltip}</span>
+      )}
+    </button>
+  );
+}
+
+// ─── Status de tratamento (botão solto com submenu próprio) ────────────────────
+const BULK_STATUS_TRATAMENTO = ['Não tratada', 'Em tratamento', 'Tratada', 'Não tratar'];
+
+function BulkStatusTratamento() {
+  const [selected, setSelected] = React.useState('Não tratada');
+  const items = BULK_STATUS_TRATAMENTO.map((opt) => ({
+    icon: <span style={{ width: 8, height: 8, borderRadius: '50%', background: selected === opt ? '#f9401b' : 'var(--color-neutral-400)' }}/>,
+    label: opt,
+    checked: selected === opt,
+    onClick: () => setSelected(opt),
+  }));
+  return (
+    <BulkDropdownBtn
+      icon={<BulkIconTag/>}
+      label="Status de tratamento"
+      items={items} />
+  );
+}
+
+// ─── Notificação descontada do condutor (item toggle) ──────────────────────────
+function useNotifDescontada() {
+  const [val, setVal] = React.useState(null); // null | 'sim' | 'nao'
+  return [val, setVal];
+}
+
+// ─── Lógica de filtragem por tab + selectionType ──────────────────────────────
+// Retorna se a ação deve aparecer na tab atual.
+const TAB_VISIBILITY = {
+  todas:     { '3tabs': true,  'todas_indicacao': true,  'todas_pagamento': true,  'pagamento': false, 'indicacao': false },
+  indicacao: { '3tabs': true,  'todas_indicacao': true,  'todas_pagamento': false, 'pagamento': false, 'indicacao': true },
+  pagamento: { '3tabs': true,  'todas_indicacao': false, 'todas_pagamento': true,  'pagamento': true,  'indicacao': false },
+};
+function showOn(activeTab, scope) {
+  const map = TAB_VISIBILITY[activeTab] || TAB_VISIBILITY.todas;
+  return !!map[scope];
+}
+
+// Em na_only/np_only desabilita a ação cruzada com tooltip
+function disabledForSelection(selectionType, side) {
+  // side: 'indicacao' | 'pagamento'
+  if (side === 'indicacao' && selectionType === 'np_only') {
+    return { disabled: true, tooltip: 'Disponível apenas para Indicação de Condutor' };
+  }
+  if (side === 'pagamento' && selectionType === 'na_only') {
+    return { disabled: true, tooltip: 'Disponível apenas para Multas a Pagar' };
+  }
+  return { disabled: false };
+}
+
+// ─── Conteúdo dos dropdowns ───────────────────────────────────────────────────
+function CondutorItems({ activeTab, selectionType, notifDescontada, setNotifDescontada }) {
+  const items = [];
+  // Baixar formulário — Todas · Indicação
+  if (showOn(activeTab, 'todas_indicacao')) {
+    const ds = disabledForSelection(selectionType, 'indicacao');
+    items.push({ icon: <BulkIconDownload/>, label: 'Baixar formulário', ...ds });
+  }
+  // Imprimir notificação de desconto — 3 tabs
+  if (showOn(activeTab, '3tabs')) {
+    items.push({ icon: <BulkIconPrint/>, label: 'Imprimir notificação de desconto' });
+  }
+  // Notificação descontada do condutor — 3 tabs (toggle Sim/Não)
+  if (showOn(activeTab, '3tabs')) {
+    items.push({
+      icon: <BulkIconCheck/>, label: 'Notificação descontada — Sim',
+      checked: notifDescontada === 'sim',
+      onClick: () => setNotifDescontada(notifDescontada === 'sim' ? null : 'sim'),
+    });
+    items.push({
+      icon: <BulkIconXCircle/>, label: 'Notificação descontada — Não',
+      checked: notifDescontada === 'nao',
+      onClick: () => setNotifDescontada(notifDescontada === 'nao' ? null : 'nao'),
+    });
+  }
+  return items;
+}
+
+function BoletosItems({ activeTab, selectionType }) {
+  const items = [];
+
+  // Solicitar boleto 40% de desconto — Todas · Indicação
+  if (showOn(activeTab, 'todas_indicacao')) {
+    const ds = disabledForSelection(selectionType, 'indicacao');
+    items.push({ icon: <BulkIconFileText/>, label: 'Solicitar boleto 40% de desconto', ...ds });
+  }
+  // Solicitar pagamento em lote — Pagamento
+  if (showOn(activeTab, 'pagamento')) {
+    const ds = disabledForSelection(selectionType, 'pagamento');
+    items.push({ icon: <BulkIconCreditCard/>, label: 'Solicitar pagamento em lote', ...ds });
+  }
+  // Atualizar boleto sem desconto — Todas · Pagamento
+  if (showOn(activeTab, 'todas_pagamento')) {
+    const ds = disabledForSelection(selectionType, 'pagamento');
+    items.push({ icon: <BulkIconRefreshCcw/>, label: 'Atualizar boleto sem desconto', ...ds });
+  }
+  // Atualizar boleto 20% — 3 tabs
+  if (showOn(activeTab, '3tabs')) {
+    items.push({ icon: <BulkIconRefreshCcw/>, label: 'Atualizar boleto 20%' });
+  }
+  // Baixar boleto — 3 tabs
+  if (showOn(activeTab, '3tabs')) {
+    items.push({ icon: <BulkIconDownload/>, label: 'Baixar boleto' });
+  }
+  // Imprimir boleto — 3 tabs
+  if (showOn(activeTab, '3tabs')) {
+    items.push({ icon: <BulkIconPrint/>, label: 'Imprimir boleto' });
+  }
+  // Alterar status para pago — Todas · Pagamento
+  if (showOn(activeTab, 'todas_pagamento')) {
+    const ds = disabledForSelection(selectionType, 'pagamento');
+    items.push({ icon: <BulkIconCheck/>, label: 'Alterar status para pago', ...ds });
+  }
+  return items;
+}
+
+function MaisAcoesItems({ activeTab }) {
+  const items = [];
+  if (showOn(activeTab, '3tabs')) {
+    items.push({ icon: <BulkIconFolder/>, label: 'Baixar arquivos da multa' });
+    items.push({
+      icon: <BulkIconFileText/>, label: 'Protocolo de Multa',
+      disabled: true, tooltip: 'A definir',
+    });
+  }
+  return items;
 }
 
 // ─── Componente principal ─────────────────────────────────────────────────────
-function BulkActionBar({ count, selectionType = 'na_only', onClose }) {
+function BulkActionBar({ count, selectionType = 'na_only', activeTab = 'todas', onClose }) {
+  const [notifDescontada, setNotifDescontada] = React.useState(null);
+  const [inativo, setInativo] = React.useState(false); // toggle visual local: Inativar ↔ Reativar
+
   if (!count || count === 0) return null;
+
+  const condutorItems = CondutorItems({ activeTab, selectionType, notifDescontada, setNotifDescontada });
+  const boletosItems  = BoletosItems({ activeTab, selectionType });
+  const maisItems     = MaisAcoesItems({ activeTab });
+
+  // Vincular condutor — 3 tabs. Em np_only desabilita com tooltip.
+  const vincularProps = disabledForSelection(selectionType, 'indicacao');
+
   return (
     <div style={{
       display: 'flex', alignItems: 'center', justifyContent: 'space-between',
@@ -154,9 +459,30 @@ function BulkActionBar({ count, selectionType = 'na_only', onClose }) {
       </div>
 
       {/* Direita — ações */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
         <BulkBtn icon={<BulkIconEraser/>} label="Limpar seleção" onClick={onClose} />
-        <BulkActions selectionType={selectionType} />
+
+        {/* Ações soltas (frequentes — 3 tabs) */}
+        <BulkStatusTratamento/>
+        <BulkBtn
+          icon={<BulkIconUser/>}
+          label="Vincular condutor"
+          {...vincularProps} />
+        <BulkBtn
+          icon={inativo ? <BulkIconRotate/> : <BulkIconXCircle/>}
+          label={inativo ? 'Reativar' : 'Inativar'}
+          onClick={() => setInativo((v) => !v)} />
+
+        {/* Dropdowns agrupados */}
+        {condutorItems.length > 0 && (
+          <BulkDropdownBtn icon={<BulkIconUser/>} label="Condutor" items={condutorItems} />
+        )}
+        {boletosItems.length > 0 && (
+          <BulkDropdownBtn icon={<BulkIconCreditCard/>} label="Boletos" items={boletosItems} />
+        )}
+        {maisItems.length > 0 && (
+          <BulkDropdownBtn icon={<BulkIconFolder/>} label="Mais ações" items={maisItems} align="right" />
+        )}
       </div>
     </div>
   );

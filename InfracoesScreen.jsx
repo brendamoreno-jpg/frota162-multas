@@ -533,6 +533,72 @@ const PENAL_STATUS = {
                           indLabel: 'CONDUTOR INDICADO',            indBg: 'var(--color-success-200)', indColor: 'var(--color-success-800)', showBarcode: false },
 };
 
+// ─── V2 — Faixa lateral por status de pendência ────────────────────────────
+const STRIPE_COLORS = {
+  acao:      { color: 'var(--color-warning-500)',     label: 'Precisa ação' },
+  andamento: { color: 'var(--color-information-600)', label: 'Em andamento' },
+  alerta:    { color: 'var(--color-warning-700)',     label: 'Atenção · vai vencer' },
+  concluido: { color: 'var(--color-success-500)',     label: 'Concluído' },
+  inativo:   { color: 'var(--color-neutral-400)',     label: 'Inativo · cancelado' },
+};
+
+const STATUS_TO_BUCKET = {
+  notificacao: {
+    indique_agora:         'acao',
+    documentos_incorretos: 'acao',
+    falha_indicacao:       'acao',
+    indeferida_orgao:      'acao',
+    indique_no_orgao:      'acao',
+    indique_orgao:         'acao',
+    em_processamento:      'andamento',
+    enviada_orgao:         'andamento',
+    aguardando_aceite:     'andamento',
+    indicacao_vencida:     'alerta',
+    recusado_condutor:     'alerta',
+    vencida_sem_acao:      'alerta',
+    condutor_indicado:     'concluido',
+    cancelado_pelo_gestor: 'inativo',
+  },
+  penalidade: {
+    em_aberto:            'acao',
+    recusado:             'acao',
+    aguardando_aprovacao: 'andamento',
+    processando:          'andamento',
+    vencido:              'alerta',
+    pago:                 'concluido',
+    cancelado:            'inativo',
+  },
+};
+
+const MOCK_TODAY = new Date(2025, 4, 25);
+const STRIPE_PRAZO_THRESHOLD = 5;
+
+function diasAteVencimento(row) {
+  if (row.tipo === 'notificacao' && typeof row.prazoIndicacao === 'number') {
+    return row.prazoIndicacao;
+  }
+  if (row.tipo === 'penalidade' && row.vencimento) {
+    const parts = String(row.vencimento).split('/');
+    if (parts.length === 3) {
+      const [d, m, y] = parts.map(Number);
+      const target = new Date(y, m - 1, d);
+      return Math.floor((target - MOCK_TODAY) / 86400000);
+    }
+  }
+  return null;
+}
+
+function getStripeBucket(row) {
+  const base = (STATUS_TO_BUCKET[row.tipo] || {})[row.statusVariant] || 'andamento';
+  if (base === 'acao' || base === 'andamento') {
+    const dias = diasAteVencimento(row);
+    if (dias !== null && dias <= STRIPE_PRAZO_THRESHOLD && dias >= 0) {
+      return 'alerta';
+    }
+  }
+  return base;
+}
+
 const BOLETO_TAGS = {
   // ── Tags SNE com ações ─────────────────────────────────────────────────────
   solicite_boleto_40:   { label: 'SOLICITE O BOLETO 40%', bg: '#fff0ec', color: '#c0391b', action: 'solicitar',  tooltip: 'Pague essa multa com 40% de desconto pelo SNE.' },
@@ -710,7 +776,7 @@ function CardMoreMenu({ row }) {
   );
 }
 
-function InfracaoCard({ row, selected, onSelect, onCardClick, onOpenIndicacao, onOpenPagamento, onBadgeAction, onBoletoAction }) {
+function InfracaoCard({ row, selected, onSelect, onCardClick, onOpenIndicacao, onOpenPagamento, onBadgeAction, onBoletoAction, stripeMode = 'tipo' }) {
   const [hovered, setHovered] = useInfState(false);
   const isNotificacao = row.tipo === 'notificacao';
   const isPenalidade  = row.tipo === 'penalidade';
@@ -735,6 +801,11 @@ function InfracaoCard({ row, selected, onSelect, onCardClick, onOpenIndicacao, o
 
   const BlueStripe   = () => <div style={{ width: 4, background: '#2a89ef', flexShrink: 0, alignSelf: 'stretch' }} />;
   const OrangeStripe = () => <div style={{ width: 4, background: '#f9401b', flexShrink: 0, alignSelf: 'stretch' }} />;
+  const StatusStripe = () => {
+    const bucket = getStripeBucket(row);
+    const cfg = STRIPE_COLORS[bucket] || STRIPE_COLORS.andamento;
+    return <div title={cfg.label} style={{ width: 4, background: cfg.color, flexShrink: 0, alignSelf: 'stretch' }} />;
+  };
 
   const CircleActionBtn = ({ title, children, onClick }) => (
     <button title={title} onClick={onClick}
@@ -837,7 +908,7 @@ function InfracaoCard({ row, selected, onSelect, onCardClick, onOpenIndicacao, o
         minHeight: 64, overflow: 'hidden',
       }}>
 
-      {isNotificacao ? <BlueStripe /> : <OrangeStripe />}
+      {stripeMode === 'status' ? <StatusStripe /> : (isNotificacao ? <BlueStripe /> : <OrangeStripe />)}
       <CheckboxArea />
 
       {/* ── Information Container ── */}
@@ -3271,7 +3342,7 @@ function AutocompleteSelect({ label, placeholder, options, value, onChange, flex
 }
 
 // ─── Tela principal ───────────────────────────────────────────────────────────
-function InfracoesScreen({ onNavigateToDetail }) {
+function InfracoesScreen({ onNavigateToDetail, stripeMode = 'tipo' }) {
   const [activeTab, setActiveTab] = useInfState('todas');
   const [activeChip, setActiveChip] = useInfState('todos');
   const [activeSort, setActiveSort] = useInfState(SORT_OPTIONS_BY_TAB['todas'][0].id);
@@ -3625,6 +3696,7 @@ function InfracoesScreen({ onNavigateToDetail }) {
           <BulkActionBar
             count={selectedRows.size}
             selectionType={selectionType}
+            activeTab={activeTab}
             onClose={() => setSelectedRows(new Set())} />
 
           {/* Selecionar todos — aparece quando ≥1 card selecionado */}
@@ -3691,7 +3763,8 @@ function InfracoesScreen({ onNavigateToDetail }) {
                     onOpenIndicacao={(r) => openDrawer('indicacao', r)}
                     onOpenPagamento={(r) => openDrawer('pagamento', r)}
                     onBadgeAction={(type, r) => setBadgeModal({ type, ait: r.ait })}
-                    onBoletoAction={handleBoletoAction} />
+                    onBoletoAction={handleBoletoAction}
+                    stripeMode={stripeMode} />
                 )}
               </div>
             );
