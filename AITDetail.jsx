@@ -1685,7 +1685,7 @@ function AITDetail({ aitId, onBack }) {
   const ait = getMock(aitId);
 
   const STATUS_CFG = {
-    indique_agora:         { text: 'INDIQUE AGORA',     bg: '#f9401b',                       color: '#fff' },
+    indique_agora:         { text: 'INDIQUE AGORA',     bg: '#2a89ef',                       color: '#fff' },
     condutor_indicado:     { text: 'CONDUTOR INDICADO', bg: 'var(--color-success-100)',       color: 'var(--color-success-700)' },
     enviada_orgao:         { text: 'ENVIADA AO ÓRGÃO',  bg: 'var(--color-information-100)',   color: 'var(--color-information-700)' },
     em_processamento:      { text: 'EM PROCESSAMENTO',  bg: 'var(--color-neutral-200)',       color: 'var(--color-neutral-700)' },
