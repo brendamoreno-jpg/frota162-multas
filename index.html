@@ -430,51 +430,138 @@ html, body {
 .frota-header__notification .frota-badge__indicator--top-right { top: 4px; right: 4px; }
 
 /* =========================================================================
-   SIDEBAR
+   SIDEBAR — Figma nodes 448:54479 (aberta) e 457:6755 (fechada).
+   Default fechada (72px); expande para 280px no hover.
    ========================================================================= */
 .frota-sidebar {
-  width: 64px;
-  background: var(--color-neutral-100);
-  border-right: var(--border-width-sm) solid var(--color-neutral-300);
-  padding: var(--padding-8x) var(--padding-6x);
+  /* Estado COLLAPSED por padrão */
+  width: 72px; flex-shrink: 0;
+  background: #fff;
+  padding: 24px 16px;
   display: flex; flex-direction: column;
-  transition: width .2s ease;
+  gap: 24px;
   position: sticky; top: 0; align-self: stretch;
+  border-right: 1px solid var(--color-neutral-300);
+  font-family: var(--font-family-primary);
+  transition: width .2s ease, box-shadow .2s ease, padding .2s ease, border-color .2s ease;
+  z-index: 10; /* fica acima do main quando expande */
 }
-.frota-sidebar.expanded { width: 240px; }
-.frota-sidebar__nav { display: flex; flex-direction: column; gap: var(--gap-2x); flex: 1; }
+.frota-sidebar.is-expanded {
+  width: 280px;
+  padding: 24px;
+  box-shadow: 2px 2px 8px rgba(0, 0, 0, 0.08);
+  border-right-color: transparent;
+}
+.frota-sidebar__nav { display: flex; flex-direction: column; gap: 24px; flex: 1; }
+.frota-sidebar.is-expanded .frota-sidebar__nav { gap: 24px; }
+.frota-sidebar:not(.is-expanded) .frota-sidebar__nav { gap: 8px; }
+
 .frota-sidebar__footer {
-  padding-top: var(--padding-6x);
-  border-top: var(--border-width-sm) solid var(--color-neutral-300);
+  padding-top: 16px;
+  border-top: 1px solid var(--color-neutral-300);
+  display: flex; flex-direction: column; gap: 4px;
 }
+/* No fechado: esconder o rodapé (Componentes/Sair) */
+.frota-sidebar:not(.is-expanded) .frota-sidebar__footer { display: none; }
+
+/* Linha-base de qualquer item (top-level ou sub) */
 .frota-sidebar__item {
-  display: flex; align-items: center; gap: var(--gap-6x);
-  padding: var(--padding-6x);
-  background: transparent; border: none; cursor: pointer;
-  border-radius: var(--border-radius-sm);
-  color: var(--color-neutral-800);
+  display: flex; align-items: center; gap: 8px;
+  padding: 8px;
+  background: transparent; border: none;
+  border-radius: 8px;
+  color: var(--color-neutral-1000);
   font-family: inherit;
-  font-size: var(--font-size-body-small);
-  font-weight: var(--font-weight-medium);
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 21px;
   text-align: left; width: 100%;
-  white-space: nowrap; overflow: hidden;
-  transition: background-color .15s, color .15s;
+  transition: background-color .15s;
 }
-.frota-sidebar__item:hover {
-  background: var(--color-primary-200);
-  color: var(--color-primary-500);
-}
-.frota-sidebar__item.active {
-  background: var(--color-primary-200);
-  color: var(--color-primary-500);
-  font-weight: var(--font-weight-bold);
+.frota-sidebar__item--clickable { cursor: pointer; }
+.frota-sidebar__item--clickable:hover { background: var(--color-neutral-200); }
+.frota-sidebar__item--disabled { cursor: default; }
+.frota-sidebar__item.is-active {
+  background: var(--color-neutral-200);
 }
 .frota-sidebar__icon {
   width: 24px; height: 24px; flex-shrink: 0;
   display: inline-flex; align-items: center; justify-content: center;
+  color: var(--color-primary-500);
 }
-.frota-sidebar__label { opacity: 0; transition: opacity .15s; flex: 1; }
-.frota-sidebar.expanded .frota-sidebar__label { opacity: 1; }
+.frota-sidebar__label { flex: 1; min-width: 0; }
+.frota-sidebar__chevron {
+  width: 24px; height: 24px; flex-shrink: 0;
+  display: inline-flex; align-items: center; justify-content: center;
+  color: var(--color-neutral-700);
+  transition: transform .15s;
+}
+.frota-sidebar__chevron--up { transform: rotate(180deg); }
+
+/* No fechado: items viram IconButton (centralizados, sem label/chevron, 40×40) */
+.frota-sidebar:not(.is-expanded) .frota-sidebar__item {
+  padding: 10px;
+  justify-content: center;
+  width: 40px; height: 40px;
+  gap: 0;
+}
+.frota-sidebar:not(.is-expanded) .frota-sidebar__label,
+.frota-sidebar:not(.is-expanded) .frota-sidebar__chevron {
+  display: none;
+}
+.frota-sidebar:not(.is-expanded) .frota-sidebar__item.is-active {
+  background: var(--color-primary-200);
+}
+.frota-sidebar:not(.is-expanded) .frota-sidebar__item.is-active .frota-sidebar__icon {
+  color: var(--color-primary-700);
+}
+
+/* Bloco accordion: pai + container de sub-itens */
+.frota-sidebar__group { display: flex; flex-direction: column; gap: 2px; }
+.frota-sidebar__sublist {
+  display: flex; flex-direction: column;
+  padding-left: 32px;
+}
+/* No fechado: nunca mostra sub-itens */
+.frota-sidebar:not(.is-expanded) .frota-sidebar__sublist { display: none; }
+
+.frota-sidebar__subitem {
+  display: flex; align-items: center; gap: 8px;
+  padding: 8px;
+  background: transparent; border: none;
+  border-radius: 8px;
+  color: var(--color-neutral-1000);
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 21px;
+  text-align: left; width: 100%;
+  transition: background-color .15s;
+}
+.frota-sidebar__subitem--clickable { cursor: pointer; }
+.frota-sidebar__subitem--clickable:hover { background: var(--color-neutral-200); }
+.frota-sidebar__subitem--disabled { cursor: default; }
+.frota-sidebar__subitem.is-active { font-weight: 600; }
+
+/* Tag "NOVO" pequeno */
+.frota-sidebar__tag {
+  display: inline-flex; align-items: center; justify-content: center;
+  padding: 4px 8px;
+  background: var(--color-success-200);
+  color: var(--color-success-800);
+  border-radius: 1000px;
+  font-size: 12px; font-weight: 700; line-height: 18px;
+  text-transform: uppercase; letter-spacing: 0;
+}
+
+/* Atalho discreto pro Componentes / Sair no rodapé */
+.frota-sidebar__footer .frota-sidebar__item {
+  font-size: 13px;
+  color: var(--color-neutral-700);
+}
+.frota-sidebar__footer .frota-sidebar__icon {
+  color: var(--color-neutral-600);
+}
 
 /* =========================================================================
    BUTTON — atoms/button/Button.scss
@@ -1385,70 +1472,199 @@ Object.assign(window, {
 
 <script type="text/babel" data-presets="react">
 // === Sidebar.jsx ===
-// Sidebar.jsx — Frota 162 collapsing sidebar
-// 64px → 240px on hover. Uses Badge DS atom for counts.
+// Sidebar.jsx — Frota 162 (Figma node 448:54479)
+// Sidebar FIXA (sem hover/collapse). Estrutura com accordion no item "Gestão de multas".
+// Itens sem tela ainda desenvolvida ficam não-clicáveis (cursor default).
 const { useState: useSidebarState } = React;
 
-const DEFAULT_SIDEBAR_ITEMS = [
-  { id: 'multas', label: 'Multas', badge: '6.766', icon: (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8m-4-4v4"/>
-    </svg>
-  )},
-  { id: 'veiculos', label: 'Veículos', badge: null, icon: (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M5 17H3a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v9a2 2 0 0 1-2 2h-2"/><circle cx="7" cy="17" r="2"/><circle cx="17" cy="17" r="2"/>
-    </svg>
-  )},
-  { id: 'motoristas', label: 'Motoristas', badge: null, icon: (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
-    </svg>
-  )},
-  { id: 'componentes', label: 'Componentes', badge: null, icon: (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/>
-    </svg>
-  )},
+// ─── Ícones (lucide-style 24×24, stroke 2) ───────────────────────────────────
+const IconHome = () => (
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>
+  </svg>
+);
+const IconFileText = () => (
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+    <polyline points="14 2 14 8 20 8"/>
+    <line x1="16" y1="13" x2="8" y2="13"/>
+    <line x1="16" y1="17" x2="8" y2="17"/>
+  </svg>
+);
+const IconCar = () => (
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M5 17H3a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v9a2 2 0 0 1-2 2h-2"/>
+    <circle cx="7" cy="17" r="2"/><circle cx="17" cy="17" r="2"/>
+  </svg>
+);
+const IconBarChart = () => (
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <line x1="12" y1="20" x2="12" y2="10"/>
+    <line x1="18" y1="20" x2="18" y2="4"/>
+    <line x1="6" y1="20" x2="6" y2="16"/>
+  </svg>
+);
+const IconWallet = () => (
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M20 12V8a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-4"/>
+    <path d="M22 12h-4a2 2 0 0 0 0 4h4z"/>
+  </svg>
+);
+const IconUsers = () => (
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
+    <path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+  </svg>
+);
+const IconHelp = () => (
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <circle cx="12" cy="12" r="10"/>
+    <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/>
+    <line x1="12" y1="17" x2="12.01" y2="17"/>
+  </svg>
+);
+const SbChevronDown = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <polyline points="6 9 12 15 18 9"/>
+  </svg>
+);
+const IconLayers = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/>
+  </svg>
+);
+const IconLogOut = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+    <polyline points="16 17 21 12 16 7"/>
+    <line x1="21" y1="12" x2="9" y2="12"/>
+  </svg>
+);
+
+// ─── Estrutura do menu (espelho do Figma node 448:54479) ─────────────────────
+// `enabled: false` → não clicável, cursor default. `enabled: true` → navegável.
+const SIDEBAR_TREE = [
+  { id: 'visao-geral',  label: 'Visão Geral',    icon: <IconHome />,     enabled: false },
+  { id: 'multas',       label: 'Gestão de multas', icon: <IconFileText />, accordion: true, enabled: true, children: [
+    { id: 'multas-transito',  label: 'Multas de trânsito',     enabled: true, badge: 'NOVO' },
+    { id: 'notificacoes',     label: 'Notificações',           enabled: false },
+    { id: 'infracoes',        label: 'Infrações',              enabled: false },
+    { id: 'multas-admin',     label: 'Multas administrativas', enabled: false },
+  ]},
+  { id: 'gestao-frota', label: 'Gestão da Frota', icon: <IconCar />,      accordion: true, enabled: false },
+  { id: 'relatorios',   label: 'Relatórios',      icon: <IconBarChart />, accordion: true, enabled: false },
+  { id: 'carteira',     label: 'Carteira',        icon: <IconWallet />,   accordion: true, enabled: false },
+  { id: 'usuarios',     label: 'Usuários',        icon: <IconUsers />,    accordion: true, enabled: false },
+  { id: 'ajuda',        label: 'Ajuda',           icon: <IconHelp />,     accordion: true, enabled: false },
 ];
 
-function Sidebar({ items = DEFAULT_SIDEBAR_ITEMS, activeId = 'multas', onSelect }) {
+function Sidebar({ activeId = 'multas-transito', onSelect }) {
+  // Mantém o accordion de "Gestão de multas" aberto por padrão (estado do Figma).
+  const [openGroup, setOpenGroup] = useSidebarState('multas');
+  // Default fechada (72px só com ícones). Hover expande para 280px com labels e sub-menu.
   const [expanded, setExpanded] = useSidebarState(false);
+
+  // Verifica se o item ativo é um sub-item de um grupo (pra destacar o pai).
+  const activeParentId = (() => {
+    for (const node of SIDEBAR_TREE) {
+      if (node.children?.some(c => c.id === activeId)) return node.id;
+    }
+    return null;
+  })();
+
+  function handleSelect(id, enabled) {
+    if (!enabled) return;          // placeholders não clicáveis
+    onSelect?.(id);
+  }
+  function toggleGroup(id) {
+    setOpenGroup(prev => prev === id ? null : id);
+  }
+
+  function renderTopLevel(node) {
+    const isAccordion = !!node.accordion;
+    const isOpen = openGroup === node.id;
+    const isActive = node.id === activeId || node.id === activeParentId;
+    const clickable = node.enabled;
+
+    // Acordeon: cabeçalho que abre/fecha + sub-lista
+    if (isAccordion) {
+      return (
+        <div key={node.id} className="frota-sidebar__group">
+          <div
+            className={`frota-sidebar__item ${isActive ? 'is-active' : ''} ${clickable ? 'frota-sidebar__item--clickable' : 'frota-sidebar__item--disabled'}`}
+            role="button"
+            tabIndex={clickable ? 0 : -1}
+            aria-expanded={isOpen}
+            aria-disabled={!clickable}
+            onClick={() => clickable && toggleGroup(node.id)}>
+            <span className="frota-sidebar__icon">{node.icon}</span>
+            <span className="frota-sidebar__label">{node.label}</span>
+            <span className={`frota-sidebar__chevron ${isOpen ? 'frota-sidebar__chevron--up' : ''}`}>
+              <SbChevronDown />
+            </span>
+          </div>
+          {isOpen && node.children && (
+            <div className="frota-sidebar__sublist">
+              {node.children.map(child => {
+                const subActive = child.id === activeId;
+                const subClickable = child.enabled;
+                return (
+                  <div
+                    key={child.id}
+                    className={`frota-sidebar__subitem ${subActive ? 'is-active' : ''} ${subClickable ? 'frota-sidebar__subitem--clickable' : 'frota-sidebar__subitem--disabled'}`}
+                    role={subClickable ? 'button' : undefined}
+                    tabIndex={subClickable ? 0 : -1}
+                    aria-current={subActive ? 'page' : undefined}
+                    aria-disabled={!subClickable}
+                    onClick={() => handleSelect(child.id, subClickable)}>
+                    <span className="frota-sidebar__label">{child.label}</span>
+                    {child.badge && (
+                      <span className="frota-sidebar__tag">{child.badge}</span>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    // Item top-level simples (sem accordion)
+    return (
+      <div
+        key={node.id}
+        className={`frota-sidebar__item ${isActive ? 'is-active' : ''} ${clickable ? 'frota-sidebar__item--clickable' : 'frota-sidebar__item--disabled'}`}
+        role={clickable ? 'button' : undefined}
+        tabIndex={clickable ? 0 : -1}
+        aria-current={isActive ? 'page' : undefined}
+        aria-disabled={!clickable}
+        onClick={() => handleSelect(node.id, clickable)}>
+        <span className="frota-sidebar__icon">{node.icon}</span>
+        <span className="frota-sidebar__label">{node.label}</span>
+      </div>
+    );
+  }
+
   return (
     <aside
-      className={`frota-sidebar ${expanded ? 'expanded' : ''}`}
+      className={`frota-sidebar ${expanded ? 'is-expanded' : ''}`}
       onMouseEnter={() => setExpanded(true)}
-      onMouseLeave={() => setExpanded(false)}
-    >
+      onMouseLeave={() => setExpanded(false)}>
       <nav className="frota-sidebar__nav">
-        {items.map(item => {
-          const active = item.id === activeId;
-          return (
-            <button
-              key={item.id}
-              className={`frota-sidebar__item ${active ? 'active' : ''}`}
-              onClick={() => onSelect?.(item.id)}
-              aria-label={item.label}
-              aria-current={active ? 'page' : undefined}
-            >
-              <span className="frota-sidebar__icon">{item.icon}</span>
-              <span className="frota-sidebar__label">{item.label}</span>
-              {item.badge && expanded ? (
-                <Tag color={active ? 'primary' : 'neutral'} accent={active ? 'on' : 'off'}>{item.badge}</Tag>
-              ) : null}
-            </button>
-          );
-        })}
+        {SIDEBAR_TREE.map(renderTopLevel)}
       </nav>
       <div className="frota-sidebar__footer">
-        <button className="frota-sidebar__item" aria-label="Sair">
-          <span className="frota-sidebar__icon">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
-              <polyline points="16 17 21 12 16 7"/>
-              <line x1="21" y1="12" x2="9" y2="12"/>
-            </svg>
-          </span>
+        <button
+          className={`frota-sidebar__item frota-sidebar__item--clickable ${activeId === 'componentes' ? 'is-active' : ''}`}
+          onClick={() => onSelect?.('componentes')}
+          aria-label="Componentes"
+          aria-current={activeId === 'componentes' ? 'page' : undefined}>
+          <span className="frota-sidebar__icon"><IconLayers /></span>
+          <span className="frota-sidebar__label">Componentes</span>
+        </button>
+        <button className="frota-sidebar__item frota-sidebar__item--clickable" aria-label="Sair">
+          <span className="frota-sidebar__icon"><IconLogOut /></span>
           <span className="frota-sidebar__label">Sair</span>
         </button>
       </div>
@@ -4305,6 +4521,11 @@ function CardMoreMenu({ row }) {
   );
 }
 
+// ─── Visibilidade dos botões de ação do card (boleto, indicação, pagamento) ──
+// Ocultos a pedido — NÃO removidos. Para reexibir, troque para true.
+// O menu "mais ações" (3 pontinhos) não é afetado por esta flag.
+const SHOW_CARD_ACTION_BUTTONS = false;
+
 function InfracaoCard({ row, selected, onSelect, onCardClick, onOpenIndicacao, onOpenPagamento, onBadgeAction, onBoletoAction }) {
   const [hovered, setHovered] = useInfState(false);
   const isNotificacao = row.tipo === 'notificacao';
@@ -4459,12 +4680,17 @@ function InfracaoCard({ row, selected, onSelect, onCardClick, onOpenIndicacao, o
               tooltip={boletoCfg.tooltip}
             />
           )}
-          {/* Tag secundária de indicação (apenas penalidade) */}
-          {!isNotificacao && cfg.indLabel && (
-            <StatusPill bg={cfg.indBg} color={cfg.indColor} label={cfg.indLabel}
-              tooltip={(() => { const k = Object.keys(NOTIF_STATUS).find(k => NOTIF_STATUS[k].label === cfg.indLabel); return k ? NOTIF_STATUS[k].tooltip : undefined; })()}
-            />
-          )}
+          {/* Tag secundária de indicação (apenas penalidade) — row.indLabel sobrescreve o padrão do status */}
+          {!isNotificacao && (row.indLabel || cfg.indLabel) && (() => {
+            const indLabel = row.indLabel || cfg.indLabel;
+            const indBg    = row.indBg    || cfg.indBg;
+            const indColor = row.indColor || cfg.indColor;
+            return (
+              <StatusPill bg={indBg} color={indColor} label={indLabel}
+                tooltip={(() => { const k = Object.keys(NOTIF_STATUS).find(k => NOTIF_STATUS[k].label === indLabel); return k ? NOTIF_STATUS[k].tooltip : undefined; })()}
+              />
+            );
+          })()}
         </div>
         {/* Descrição */}
         <div style={{ fontSize: 13, color: '#606266', lineHeight: 1.3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
@@ -4518,10 +4744,10 @@ function InfracaoCard({ row, selected, onSelect, onCardClick, onOpenIndicacao, o
         </NewMetaCol>
       )}
 
-      {/* ── Actions — largura fixa para alinhar colunas entre todos os cards ── */}
+      {/* ── Actions — largura fixa para alinhar colunas; encolhe quando os botões estão ocultos ── */}
       <div onClick={(e) => e.stopPropagation()}
-        style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0, width: 120, justifyContent: 'flex-end', padding: '0 16px 0 4px' }}>
-        {isNotificacao && (
+        style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0, width: SHOW_CARD_ACTION_BUTTONS ? 120 : 'auto', justifyContent: 'flex-end', padding: '0 16px 0 4px' }}>
+        {SHOW_CARD_ACTION_BUTTONS && isNotificacao && (
           <>
             {row.statusVariant === 'indique_agora' && boletoCfg ? (() => {
               const [baixadoPos, setBaixadoPos] = useInfState(null);
@@ -4572,7 +4798,7 @@ function InfracaoCard({ row, selected, onSelect, onCardClick, onOpenIndicacao, o
             <CircleActionBtn title="Indicar condutor" onClick={() => onOpenIndicacao && onOpenIndicacao(row)}><IconUserRound /></CircleActionBtn>
           </>
         )}
-        {isPenalidade && (
+        {SHOW_CARD_ACTION_BUTTONS && isPenalidade && (
           <>
             {cfg.showBarcode && <CircleActionBtn title="Ver boleto" onClick={() => onBoletoAction && onBoletoAction('solicitar', row)}><IconBarcode /></CircleActionBtn>}
             <CircleActionBtn title="Situação de pagamento" onClick={() => onOpenPagamento && onOpenPagamento(row)}><IconDollar /></CircleActionBtn>
@@ -4896,11 +5122,11 @@ const MOCK_ROWS = [
   },
   // ── Jornadas completas (novas) ────────────────────────────────────────────────
   {
-    id: 21, tipo: 'notificacao', statusVariant: 'condutor_indicado', boletoTag: null,
+    id: 21, tipo: 'notificacao', statusVariant: 'indique_agora', boletoTag: 'solicite_boleto_40',
     ait: 'SP11000001', codigoInfracao: '73662', nomeInfracao: 'Avançar Sinal Vermelho',
     placa: 'QAZ1W23', dataInfracao: '10/03/2025', orgao: 'DETRAN-SP',
-    valor: 'R$ 293,47', prazoIndicacao: 0, prazoDataFormatada: '17/07/2026', prazoOrgaoData: '31/07/2026',
-    vencimento: null, condutor: 'Paulo Henrique Souza', temAnexo: false, lowOpacity: false,
+    valor: 'R$ 293,47', prazoIndicacao: 8, prazoDataFormatada: '17/07/2026', prazoOrgaoData: '31/07/2026',
+    vencimento: null, condutor: null, temAnexo: false, lowOpacity: false,
   },
   {
     id: 22, tipo: 'notificacao', statusVariant: 'documentos_incorretos', boletoTag: null,
@@ -4943,6 +5169,8 @@ const MOCK_ROWS = [
     placa: 'VWX9A56', dataInfracao: '15/01/2025', orgao: 'CET-SP',
     valor: 'R$ 130,16', prazoIndicacao: null, prazoDataFormatada: null, prazoOrgaoData: null,
     vencimento: '26/08/2026', condutor: 'João Carlos Pereira', temAnexo: false, lowOpacity: false,
+    // Override da tag secundária: exibe "CONDUTOR INDICADO" (verde) no lugar do padrão do status.
+    indLabel: 'CONDUTOR INDICADO', indBg: 'var(--color-success-200)', indColor: 'var(--color-success-800)',
   },
   {
     id: 28, tipo: 'penalidade', statusVariant: 'vencido', boletoTag: null,
@@ -4961,6 +5189,8 @@ const MOCK_ROWS = [
 ];
 
 window.MOCK_AIT_OPTIONS = MOCK_ROWS.map(function(r) { return r.ait; });
+// Expõe os rows da listagem para o detalhe poder derivar o status quando não há mock dedicado.
+window.MOCK_ROWS = MOCK_ROWS;
 window.MOCK_CTB_OPTIONS = (function() {
   var seen = {};
   return MOCK_ROWS.filter(function(r) {
@@ -8148,6 +8378,13 @@ function InfracoesScreen({ onNavigateToDetail }) {
                 .filter((row) => chipMatchesRow(activeChip, row, activeTab))
                 .sort(activeSortFn || (() => 0));
             }
+
+            // Prioriza no topo os cards que exigem ação imediata: INDIQUE AGORA e PAGUE AGORA.
+            // sort estável → mantém a ordem já definida entre os demais cards.
+            const PRIORITY_STATUS = new Set(['indique_agora', 'em_aberto']);
+            visibleRows = [...visibleRows].sort((a, b) =>
+              (PRIORITY_STATUS.has(a.statusVariant) ? 0 : 1) - (PRIORITY_STATUS.has(b.statusVariant) ? 0 : 1)
+            );
             return (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
                 {visibleRows.map((row) =>
@@ -9651,8 +9888,66 @@ const MOCK_PAGO_COMPLETO = {
   ],
 };
 
+// SP11000001 segue o mesmo status da listagem: INDIQUE AGORA (clona o SNE, ainda sem condutor).
+const MOCK_INDIQUE_SP01 = {
+  ...MOCK_SNE,
+  statusVariant: 'indique_agora',
+  indicacaoTipo: null,
+  condutor: null,
+  placa: 'QAZ1W23',
+  statusBoletoSne: 'Não solicitado',
+};
+
+// SP04127850 segue o status do card: PAGUE AGORA (em_aberto). Clona o PAGUE AGORA com os dados corretos.
+const MOCK_PAGUE_SP850 = {
+  ...MOCK_PAGUE_AGORA,
+  codigoInfracao: '73662',
+  nomeInfracao: 'Avançar Sinal Vermelho',
+  dataInfracao: '10/03/2025',
+  dataCriacao: '10/03/2025',
+  orgao: 'DETRAN-SP',
+  local: 'Av. Paulista, 1578',
+  enderecoCompleto: 'Av. Paulista, 1578',
+  bairro: 'Bela Vista',
+  valor: 'R$ 293,47',
+  placa: 'DTX0021',
+  gravidade: 'Gravíssima',
+  pontos: 7,
+  veiculo: 'Volkswagen Gol 2021',
+  dataVencimento: '15/08/2025',
+  condutor: null,
+};
+
+// Deriva um mock de detalhe a partir do row da listagem, garantindo que o
+// status e os dados principais do detalhe batam com o card. Usado como fallback
+// quando o AIT não tem um mock dedicado.
+function buildDetailFromRow(row) {
+  if (!row) return MOCK_DEFAULT;
+  return {
+    ...MOCK_DEFAULT,
+    statusVariant: row.statusVariant,
+    indicacaoTipo: row.indicacaoTipo || null,
+    codigoInfracao: row.codigoInfracao,
+    nomeInfracao: row.nomeInfracao,
+    placa: row.placa,
+    orgao: row.orgao,
+    valor: row.valor,
+    dataInfracao: row.dataInfracao,
+    dataCriacao: row.dataInfracao,
+    vencimento: row.vencimento,
+    dataVencimento: row.vencimento,
+    tipo: row.tipo === 'penalidade' ? 'Penalidade' : 'Notificação',
+    condutor: row.condutor ? (typeof row.condutor === 'string' ? { nome: row.condutor } : row.condutor) : null,
+    prazoIndicacao: row.prazoDataFormatada || null,
+    prazoIndicacaoDias: typeof row.prazoIndicacao === 'number' ? row.prazoIndicacao : null,
+    indLabel: row.indLabel, indBg: row.indBg, indColor: row.indColor,
+  };
+}
+
 function getMock(aitId) {
-  if (aitId === 'SP04127832' || aitId === 'SP11000001') return MOCK_SNE;
+  if (aitId === 'SP11000001') return MOCK_INDIQUE_SP01;
+  if (aitId === 'SP04127850') return MOCK_PAGUE_SP850;
+  if (aitId === 'SP04127832') return MOCK_SNE;
   if (aitId === 'RJ01985432' || aitId === 'SP11000002') return MOCK_FORMULARIO;
   if (aitId === 'SP11000003') return MOCK_PAGAMENTO;
   if (aitId === 'SP11000004') return MOCK_INDIQUE_AGORA;
@@ -9661,6 +9956,9 @@ function getMock(aitId) {
   if (aitId === 'SP11000007') return MOCK_PAGUE_AGORA;
   if (aitId === 'SP11000008') return MOCK_VENCIDO;
   if (aitId === 'SP11000009') return MOCK_PAGO_COMPLETO;
+  // Fallback robusto: deriva do row da listagem para o detalhe refletir o card.
+  const row = (window.MOCK_ROWS || []).find(function(r) { return r.ait === aitId; });
+  if (row) return buildDetailFromRow(row);
   return MOCK_DEFAULT;
 }
 
@@ -10136,8 +10434,21 @@ function MoreDropdown({ onClose, anchorRect }) {
   );
 }
 
+// ─── Visibilidade da tab bar + aba "Histórico" na tela de detalhe ────────────
+// Ocultos a pedido — NÃO removidos. Para reexibir, troque para true.
+// Com false, a tela mostra apenas Resumo + Dados da multa (sem tabs).
+const SHOW_DETAIL_TABS = false;
+
+// ─── Regras de exibição das ações do topo (Figma node 237:16178) ─────────────
+// "Ver documentos" (06): só quando a indicação foi POR FORMULÁRIO (ait.indicacaoTipo === 'formulario').
+// "Indicar condutor" (08): só quando ainda é possível indicar o condutor.
+// "Pagar multa" (09): só quando é possível pagar pela plataforma.
+// "Baixar espelho" e o menu (⋮) não têm regra — sempre visíveis.
+const STATUS_PODE_INDICAR = new Set(['indique_agora', 'documentos_incorretos', 'falha_indicacao']);
+const STATUS_PODE_PAGAR   = new Set(['em_aberto']);
+
 function AITDetail({ aitId, onBack }) {
-  const [activeTab, setActiveTab] = useDetState('acompanhe');
+  const [activeTab, setActiveTab] = useDetState(SHOW_DETAIL_TABS ? 'acompanhe' : 'informacoes');
   const [moreMenuOpen, setMoreMenuOpen] = useDetState(false);
   const [moreAnchorRect, setMoreAnchorRect] = useDetState(null);
   const ait = getMock(aitId);
@@ -10156,6 +10467,14 @@ function AITDetail({ aitId, onBack }) {
     recusado:              { text: 'PGTO. RECUSADO',     bg: 'var(--color-error-100)',         color: 'var(--color-error-700)' },
     processando:           { text: 'EM PROCESSAMENTO',   bg: 'var(--color-neutral-200)',       color: 'var(--color-neutral-700)' },
     aguardando_aprovacao:  { text: 'AGUARDANDO APROV.',  bg: 'var(--color-warning-100)',       color: 'var(--color-warning-700)' },
+    falha_indicacao:       { text: 'FALHA NA INDICAÇÃO', bg: 'var(--color-warning-100)',       color: 'var(--color-warning-700)' },
+    indeferida_orgao:      { text: 'INDEFERIDA PELO ÓRGÃO', bg: 'var(--color-warning-100)',    color: 'var(--color-warning-700)' },
+    indique_orgao:         { text: 'INDIQUE NO ÓRGÃO',   bg: 'var(--color-neutral-200)',       color: 'var(--color-neutral-700)' },
+    indique_no_orgao:      { text: 'INDIQUE NO ÓRGÃO',   bg: 'var(--color-neutral-200)',       color: 'var(--color-neutral-700)' },
+    indicacao_vencida:     { text: 'INDICAÇÃO VENCIDA',  bg: 'var(--color-error-100)',         color: 'var(--color-error-700)' },
+    vencida_sem_acao:      { text: 'VENCIDA SEM AÇÃO',   bg: 'var(--color-error-100)',         color: 'var(--color-error-700)' },
+    cancelado:             { text: 'CANCELADO',          bg: 'var(--color-neutral-200)',       color: 'var(--color-neutral-700)' },
+    cancelado_pelo_gestor: { text: 'CANCELADO PELO GESTOR', bg: 'var(--color-neutral-200)',    color: 'var(--color-neutral-700)' },
   };
   const status = STATUS_CFG[ait.statusVariant] || STATUS_CFG.em_processamento;
 
@@ -10212,14 +10531,32 @@ function AITDetail({ aitId, onBack }) {
               </p>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
-              <button style={btnSecondary}
-                onMouseEnter={e => e.currentTarget.style.background = 'var(--color-neutral-200)'}
-                onMouseLeave={e => e.currentTarget.style.background = 'var(--color-neutral-100)'}
-              ><DetIconPrint /> Imprimir</button>
+              {/* 06 — Ver documentos: só quando a indicação foi por formulário */}
+              {ait.indicacaoTipo === 'formulario' && (
+                <button style={btnSecondary}
+                  onMouseEnter={e => e.currentTarget.style.background = 'var(--color-neutral-200)'}
+                  onMouseLeave={e => e.currentTarget.style.background = 'var(--color-neutral-100)'}
+                ><DetIconDoc /> Ver documentos</button>
+              )}
+              {/* Baixar espelho: sempre visível */}
               <button style={btnSecondary}
                 onMouseEnter={e => e.currentTarget.style.background = 'var(--color-neutral-200)'}
                 onMouseLeave={e => e.currentTarget.style.background = 'var(--color-neutral-100)'}
               ><DetIconDownload /> Baixar espelho</button>
+              {/* 08 — Indicar condutor: só quando é possível indicar */}
+              {STATUS_PODE_INDICAR.has(ait.statusVariant) && (
+                <button style={btnPrimary}
+                  onMouseEnter={e => e.currentTarget.style.background = 'var(--color-primary-600)'}
+                  onMouseLeave={e => e.currentTarget.style.background = 'var(--color-primary-500)'}
+                ><DetIconUser /> Indicar condutor</button>
+              )}
+              {/* 09 — Pagar multa: só quando é possível pagar pela plataforma */}
+              {STATUS_PODE_PAGAR.has(ait.statusVariant) && (
+                <button style={btnPrimary}
+                  onMouseEnter={e => e.currentTarget.style.background = 'var(--color-primary-600)'}
+                  onMouseLeave={e => e.currentTarget.style.background = 'var(--color-primary-500)'}
+                ><DetIconDollar /> Pagar multa</button>
+              )}
               <button style={{
                 display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
                 width: 40, height: 40, padding: 12,
@@ -10235,7 +10572,8 @@ function AITDetail({ aitId, onBack }) {
             </div>
           </div>
 
-          {/* Tab bar — pill container (Figma style) */}
+          {/* Tab bar — pill container (Figma style) — ocultável via SHOW_DETAIL_TABS */}
+          {SHOW_DETAIL_TABS && (
           <div style={{
             background: 'var(--color-neutral-100)',
             border: '1px solid var(--color-neutral-300)',
@@ -10259,6 +10597,7 @@ function AITDetail({ aitId, onBack }) {
               );
             })}
           </div>
+          )}
 
           {/* Layout persistente: Resumo + conteúdo da tab */}
           <div style={{ display: 'flex', gap: 16, alignItems: 'flex-start' }}>
@@ -10276,7 +10615,7 @@ function AITDetail({ aitId, onBack }) {
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                   <div style={{
                     width: 40, height: 40, borderRadius: 4, flexShrink: 0,
-                    background: 'var(--color-secondary-200, #e8f3ea)',
+                    background: 'var(--color-primary-200)',
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                     color: 'var(--color-primary-600)',
                   }}><DetIconDoc /></div>
@@ -10351,7 +10690,7 @@ function AITDetail({ aitId, onBack }) {
             {/* ── Área de conteúdo da tab ── */}
             <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 16 }}>
 
-              {activeTab === 'acompanhe' && (
+              {SHOW_DETAIL_TABS && activeTab === 'acompanhe' && (
                 <div style={{
                   background: 'var(--color-neutral-100)',
                   border: '1px solid var(--color-neutral-300)',
@@ -10696,6 +11035,16 @@ const btnSecondary = {
   cursor: 'pointer', whiteSpace: 'nowrap', transition: 'background .15s',
 };
 
+const btnPrimary = {
+  display: 'inline-flex', alignItems: 'center', gap: 8,
+  padding: '0 16px', height: 40,
+  border: 'none', borderRadius: 8,
+  background: 'var(--color-primary-500)',
+  fontFamily: 'var(--font-family-primary)',
+  fontSize: 14, fontWeight: 700, color: '#fff',
+  cursor: 'pointer', whiteSpace: 'nowrap', transition: 'background .15s',
+};
+
 window.AITDetail = AITDetail;
 })(); // fim IIFE
 
@@ -10907,7 +11256,8 @@ function ComponentesScreen() {
 
 function App() {
   const [currentAit, setCurrentAit] = React.useState(null);
-  const [sidebarId, setSidebarId] = React.useState('multas');
+  // Reflete o Figma: o item ativo padrão é "Multas de trânsito" (sub-item de Gestão de multas).
+  const [sidebarId, setSidebarId] = React.useState('multas-transito');
 
   function handleSidebarSelect(id) {
     setSidebarId(id);

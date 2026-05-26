@@ -1119,8 +1119,66 @@ const MOCK_PAGO_COMPLETO = {
   ],
 };
 
+// SP11000001 segue o mesmo status da listagem: INDIQUE AGORA (clona o SNE, ainda sem condutor).
+const MOCK_INDIQUE_SP01 = {
+  ...MOCK_SNE,
+  statusVariant: 'indique_agora',
+  indicacaoTipo: null,
+  condutor: null,
+  placa: 'QAZ1W23',
+  statusBoletoSne: 'Não solicitado',
+};
+
+// SP04127850 segue o status do card: PAGUE AGORA (em_aberto). Clona o PAGUE AGORA com os dados corretos.
+const MOCK_PAGUE_SP850 = {
+  ...MOCK_PAGUE_AGORA,
+  codigoInfracao: '73662',
+  nomeInfracao: 'Avançar Sinal Vermelho',
+  dataInfracao: '10/03/2025',
+  dataCriacao: '10/03/2025',
+  orgao: 'DETRAN-SP',
+  local: 'Av. Paulista, 1578',
+  enderecoCompleto: 'Av. Paulista, 1578',
+  bairro: 'Bela Vista',
+  valor: 'R$ 293,47',
+  placa: 'DTX0021',
+  gravidade: 'Gravíssima',
+  pontos: 7,
+  veiculo: 'Volkswagen Gol 2021',
+  dataVencimento: '15/08/2025',
+  condutor: null,
+};
+
+// Deriva um mock de detalhe a partir do row da listagem, garantindo que o
+// status e os dados principais do detalhe batam com o card. Usado como fallback
+// quando o AIT não tem um mock dedicado.
+function buildDetailFromRow(row) {
+  if (!row) return MOCK_DEFAULT;
+  return {
+    ...MOCK_DEFAULT,
+    statusVariant: row.statusVariant,
+    indicacaoTipo: row.indicacaoTipo || null,
+    codigoInfracao: row.codigoInfracao,
+    nomeInfracao: row.nomeInfracao,
+    placa: row.placa,
+    orgao: row.orgao,
+    valor: row.valor,
+    dataInfracao: row.dataInfracao,
+    dataCriacao: row.dataInfracao,
+    vencimento: row.vencimento,
+    dataVencimento: row.vencimento,
+    tipo: row.tipo === 'penalidade' ? 'Penalidade' : 'Notificação',
+    condutor: row.condutor ? (typeof row.condutor === 'string' ? { nome: row.condutor } : row.condutor) : null,
+    prazoIndicacao: row.prazoDataFormatada || null,
+    prazoIndicacaoDias: typeof row.prazoIndicacao === 'number' ? row.prazoIndicacao : null,
+    indLabel: row.indLabel, indBg: row.indBg, indColor: row.indColor,
+  };
+}
+
 function getMock(aitId) {
-  if (aitId === 'SP04127832' || aitId === 'SP11000001') return MOCK_SNE;
+  if (aitId === 'SP11000001') return MOCK_INDIQUE_SP01;
+  if (aitId === 'SP04127850') return MOCK_PAGUE_SP850;
+  if (aitId === 'SP04127832') return MOCK_SNE;
   if (aitId === 'RJ01985432' || aitId === 'SP11000002') return MOCK_FORMULARIO;
   if (aitId === 'SP11000003') return MOCK_PAGAMENTO;
   if (aitId === 'SP11000004') return MOCK_INDIQUE_AGORA;
@@ -1129,6 +1187,9 @@ function getMock(aitId) {
   if (aitId === 'SP11000007') return MOCK_PAGUE_AGORA;
   if (aitId === 'SP11000008') return MOCK_VENCIDO;
   if (aitId === 'SP11000009') return MOCK_PAGO_COMPLETO;
+  // Fallback robusto: deriva do row da listagem para o detalhe refletir o card.
+  const row = (window.MOCK_ROWS || []).find(function(r) { return r.ait === aitId; });
+  if (row) return buildDetailFromRow(row);
   return MOCK_DEFAULT;
 }
 
@@ -1604,8 +1665,21 @@ function MoreDropdown({ onClose, anchorRect }) {
   );
 }
 
+// ─── Visibilidade da tab bar + aba "Histórico" na tela de detalhe ────────────
+// Ocultos a pedido — NÃO removidos. Para reexibir, troque para true.
+// Com false, a tela mostra apenas Resumo + Dados da multa (sem tabs).
+const SHOW_DETAIL_TABS = false;
+
+// ─── Regras de exibição das ações do topo (Figma node 237:16178) ─────────────
+// "Ver documentos" (06): só quando a indicação foi POR FORMULÁRIO (ait.indicacaoTipo === 'formulario').
+// "Indicar condutor" (08): só quando ainda é possível indicar o condutor.
+// "Pagar multa" (09): só quando é possível pagar pela plataforma.
+// "Baixar espelho" e o menu (⋮) não têm regra — sempre visíveis.
+const STATUS_PODE_INDICAR = new Set(['indique_agora', 'documentos_incorretos', 'falha_indicacao']);
+const STATUS_PODE_PAGAR   = new Set(['em_aberto']);
+
 function AITDetail({ aitId, onBack }) {
-  const [activeTab, setActiveTab] = useDetState('acompanhe');
+  const [activeTab, setActiveTab] = useDetState(SHOW_DETAIL_TABS ? 'acompanhe' : 'informacoes');
   const [moreMenuOpen, setMoreMenuOpen] = useDetState(false);
   const [moreAnchorRect, setMoreAnchorRect] = useDetState(null);
   const ait = getMock(aitId);
@@ -1624,6 +1698,14 @@ function AITDetail({ aitId, onBack }) {
     recusado:              { text: 'PGTO. RECUSADO',     bg: 'var(--color-error-100)',         color: 'var(--color-error-700)' },
     processando:           { text: 'EM PROCESSAMENTO',   bg: 'var(--color-neutral-200)',       color: 'var(--color-neutral-700)' },
     aguardando_aprovacao:  { text: 'AGUARDANDO APROV.',  bg: 'var(--color-warning-100)',       color: 'var(--color-warning-700)' },
+    falha_indicacao:       { text: 'FALHA NA INDICAÇÃO', bg: 'var(--color-warning-100)',       color: 'var(--color-warning-700)' },
+    indeferida_orgao:      { text: 'INDEFERIDA PELO ÓRGÃO', bg: 'var(--color-warning-100)',    color: 'var(--color-warning-700)' },
+    indique_orgao:         { text: 'INDIQUE NO ÓRGÃO',   bg: 'var(--color-neutral-200)',       color: 'var(--color-neutral-700)' },
+    indique_no_orgao:      { text: 'INDIQUE NO ÓRGÃO',   bg: 'var(--color-neutral-200)',       color: 'var(--color-neutral-700)' },
+    indicacao_vencida:     { text: 'INDICAÇÃO VENCIDA',  bg: 'var(--color-error-100)',         color: 'var(--color-error-700)' },
+    vencida_sem_acao:      { text: 'VENCIDA SEM AÇÃO',   bg: 'var(--color-error-100)',         color: 'var(--color-error-700)' },
+    cancelado:             { text: 'CANCELADO',          bg: 'var(--color-neutral-200)',       color: 'var(--color-neutral-700)' },
+    cancelado_pelo_gestor: { text: 'CANCELADO PELO GESTOR', bg: 'var(--color-neutral-200)',    color: 'var(--color-neutral-700)' },
   };
   const status = STATUS_CFG[ait.statusVariant] || STATUS_CFG.em_processamento;
 
@@ -1680,14 +1762,32 @@ function AITDetail({ aitId, onBack }) {
               </p>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
-              <button style={btnSecondary}
-                onMouseEnter={e => e.currentTarget.style.background = 'var(--color-neutral-200)'}
-                onMouseLeave={e => e.currentTarget.style.background = 'var(--color-neutral-100)'}
-              ><DetIconPrint /> Imprimir</button>
+              {/* 06 — Ver documentos: só quando a indicação foi por formulário */}
+              {ait.indicacaoTipo === 'formulario' && (
+                <button style={btnSecondary}
+                  onMouseEnter={e => e.currentTarget.style.background = 'var(--color-neutral-200)'}
+                  onMouseLeave={e => e.currentTarget.style.background = 'var(--color-neutral-100)'}
+                ><DetIconDoc /> Ver documentos</button>
+              )}
+              {/* Baixar espelho: sempre visível */}
               <button style={btnSecondary}
                 onMouseEnter={e => e.currentTarget.style.background = 'var(--color-neutral-200)'}
                 onMouseLeave={e => e.currentTarget.style.background = 'var(--color-neutral-100)'}
               ><DetIconDownload /> Baixar espelho</button>
+              {/* 08 — Indicar condutor: só quando é possível indicar */}
+              {STATUS_PODE_INDICAR.has(ait.statusVariant) && (
+                <button style={btnPrimary}
+                  onMouseEnter={e => e.currentTarget.style.background = 'var(--color-primary-600)'}
+                  onMouseLeave={e => e.currentTarget.style.background = 'var(--color-primary-500)'}
+                ><DetIconUser /> Indicar condutor</button>
+              )}
+              {/* 09 — Pagar multa: só quando é possível pagar pela plataforma */}
+              {STATUS_PODE_PAGAR.has(ait.statusVariant) && (
+                <button style={btnPrimary}
+                  onMouseEnter={e => e.currentTarget.style.background = 'var(--color-primary-600)'}
+                  onMouseLeave={e => e.currentTarget.style.background = 'var(--color-primary-500)'}
+                ><DetIconDollar /> Pagar multa</button>
+              )}
               <button style={{
                 display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
                 width: 40, height: 40, padding: 12,
@@ -1703,7 +1803,8 @@ function AITDetail({ aitId, onBack }) {
             </div>
           </div>
 
-          {/* Tab bar — pill container (Figma style) */}
+          {/* Tab bar — pill container (Figma style) — ocultável via SHOW_DETAIL_TABS */}
+          {SHOW_DETAIL_TABS && (
           <div style={{
             background: 'var(--color-neutral-100)',
             border: '1px solid var(--color-neutral-300)',
@@ -1727,6 +1828,7 @@ function AITDetail({ aitId, onBack }) {
               );
             })}
           </div>
+          )}
 
           {/* Layout persistente: Resumo + conteúdo da tab */}
           <div style={{ display: 'flex', gap: 16, alignItems: 'flex-start' }}>
@@ -1744,7 +1846,7 @@ function AITDetail({ aitId, onBack }) {
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                   <div style={{
                     width: 40, height: 40, borderRadius: 4, flexShrink: 0,
-                    background: 'var(--color-secondary-200, #e8f3ea)',
+                    background: 'var(--color-primary-200)',
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                     color: 'var(--color-primary-600)',
                   }}><DetIconDoc /></div>
@@ -1819,7 +1921,7 @@ function AITDetail({ aitId, onBack }) {
             {/* ── Área de conteúdo da tab ── */}
             <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 16 }}>
 
-              {activeTab === 'acompanhe' && (
+              {SHOW_DETAIL_TABS && activeTab === 'acompanhe' && (
                 <div style={{
                   background: 'var(--color-neutral-100)',
                   border: '1px solid var(--color-neutral-300)',
@@ -2161,6 +2263,16 @@ const btnSecondary = {
   background: 'var(--color-neutral-100)',
   fontFamily: 'var(--font-family-primary)',
   fontSize: 14, fontWeight: 700, color: 'var(--color-neutral-900)',
+  cursor: 'pointer', whiteSpace: 'nowrap', transition: 'background .15s',
+};
+
+const btnPrimary = {
+  display: 'inline-flex', alignItems: 'center', gap: 8,
+  padding: '0 16px', height: 40,
+  border: 'none', borderRadius: 8,
+  background: 'var(--color-primary-500)',
+  fontFamily: 'var(--font-family-primary)',
+  fontSize: 14, fontWeight: 700, color: '#fff',
   cursor: 'pointer', whiteSpace: 'nowrap', transition: 'background .15s',
 };
 

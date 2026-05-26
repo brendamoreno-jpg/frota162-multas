@@ -710,6 +710,11 @@ function CardMoreMenu({ row }) {
   );
 }
 
+// ─── Visibilidade dos botões de ação do card (boleto, indicação, pagamento) ──
+// Ocultos a pedido — NÃO removidos. Para reexibir, troque para true.
+// O menu "mais ações" (3 pontinhos) não é afetado por esta flag.
+const SHOW_CARD_ACTION_BUTTONS = false;
+
 function InfracaoCard({ row, selected, onSelect, onCardClick, onOpenIndicacao, onOpenPagamento, onBadgeAction, onBoletoAction }) {
   const [hovered, setHovered] = useInfState(false);
   const isNotificacao = row.tipo === 'notificacao';
@@ -868,12 +873,17 @@ function InfracaoCard({ row, selected, onSelect, onCardClick, onOpenIndicacao, o
               tooltip={boletoCfg.tooltip}
             />
           )}
-          {/* Tag secundária de indicação (apenas penalidade) */}
-          {!isNotificacao && cfg.indLabel && (
-            <StatusPill bg={cfg.indBg} color={cfg.indColor} label={cfg.indLabel}
-              tooltip={(() => { const k = Object.keys(NOTIF_STATUS).find(k => NOTIF_STATUS[k].label === cfg.indLabel); return k ? NOTIF_STATUS[k].tooltip : undefined; })()}
-            />
-          )}
+          {/* Tag secundária de indicação (apenas penalidade) — row.indLabel sobrescreve o padrão do status */}
+          {!isNotificacao && (row.indLabel || cfg.indLabel) && (() => {
+            const indLabel = row.indLabel || cfg.indLabel;
+            const indBg    = row.indBg    || cfg.indBg;
+            const indColor = row.indColor || cfg.indColor;
+            return (
+              <StatusPill bg={indBg} color={indColor} label={indLabel}
+                tooltip={(() => { const k = Object.keys(NOTIF_STATUS).find(k => NOTIF_STATUS[k].label === indLabel); return k ? NOTIF_STATUS[k].tooltip : undefined; })()}
+              />
+            );
+          })()}
         </div>
         {/* Descrição */}
         <div style={{ fontSize: 13, color: '#606266', lineHeight: 1.3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
@@ -927,10 +937,10 @@ function InfracaoCard({ row, selected, onSelect, onCardClick, onOpenIndicacao, o
         </NewMetaCol>
       )}
 
-      {/* ── Actions — largura fixa para alinhar colunas entre todos os cards ── */}
+      {/* ── Actions — largura fixa para alinhar colunas; encolhe quando os botões estão ocultos ── */}
       <div onClick={(e) => e.stopPropagation()}
-        style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0, width: 120, justifyContent: 'flex-end', padding: '0 16px 0 4px' }}>
-        {isNotificacao && (
+        style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0, width: SHOW_CARD_ACTION_BUTTONS ? 120 : 'auto', justifyContent: 'flex-end', padding: '0 16px 0 4px' }}>
+        {SHOW_CARD_ACTION_BUTTONS && isNotificacao && (
           <>
             {boletoCfg ? (() => {
               const [baixadoPos, setBaixadoPos] = useInfState(null);
@@ -981,7 +991,7 @@ function InfracaoCard({ row, selected, onSelect, onCardClick, onOpenIndicacao, o
             <CircleActionBtn title="Indicar condutor" onClick={() => onOpenIndicacao && onOpenIndicacao(row)}><IconUserRound /></CircleActionBtn>
           </>
         )}
-        {isPenalidade && (
+        {SHOW_CARD_ACTION_BUTTONS && isPenalidade && (
           <>
             {cfg.showBarcode && <CircleActionBtn title="Ver boleto"><IconBarcode /></CircleActionBtn>}
             <CircleActionBtn title="Situação de pagamento" onClick={() => onOpenPagamento && onOpenPagamento(row)}><IconDollar /></CircleActionBtn>
@@ -3680,6 +3690,13 @@ function InfracoesScreen({ onNavigateToDetail }) {
                 .filter((row) => chipMatchesRow(activeChip, row, activeTab))
                 .sort(activeSortFn || (() => 0));
             }
+
+            // Prioriza no topo os cards que exigem ação imediata: INDIQUE AGORA e PAGUE AGORA.
+            // sort estável → mantém a ordem já definida entre os demais cards.
+            const PRIORITY_STATUS = new Set(['indique_agora', 'em_aberto']);
+            visibleRows = [...visibleRows].sort((a, b) =>
+              (PRIORITY_STATUS.has(a.statusVariant) ? 0 : 1) - (PRIORITY_STATUS.has(b.statusVariant) ? 0 : 1)
+            );
             return (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
                 {visibleRows.map((row) =>
