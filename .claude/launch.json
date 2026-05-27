@@ -4,8 +4,8 @@
     {
       "name": "infracoes",
       "runtimeExecutable": "npx",
-      "runtimeArgs": ["--yes", "serve", "-p", "7164", "/Users/brendahelen/Documents/Frota 162/pasta sem título/notificacoes"],
-      "port": 7164
+      "runtimeArgs": ["--yes", "serve", "/Users/brendahelen/Documents/Frota 162/pasta sem título/notificacoes"],
+      "port": 7165
     }
   ]
 }
