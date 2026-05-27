@@ -392,9 +392,9 @@ function BoletosItems({ activeTab, selectionType }) {
     const ds = disabledForSelection(selectionType, 'pagamento');
     items.push({ icon: <BulkIconRefreshCcw/>, label: 'Atualizar boleto sem desconto', ...ds });
   }
-  // Atualizar boleto 20% — 3 tabs
+  // Atualizar boleto — 3 tabs
   if (showOn(activeTab, '3tabs')) {
-    items.push({ icon: <BulkIconRefreshCcw/>, label: 'Atualizar boleto 20%' });
+    items.push({ icon: <BulkIconRefreshCcw/>, label: 'Atualizar boleto' });
   }
   // Baixar boleto — 3 tabs
   if (showOn(activeTab, '3tabs')) {

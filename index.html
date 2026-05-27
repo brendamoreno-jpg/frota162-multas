@@ -2403,9 +2403,9 @@ function BoletosItems({ activeTab, selectionType }) {
     const ds = disabledForSelection(selectionType, 'pagamento');
     items.push({ icon: <BulkIconRefreshCcw/>, label: 'Atualizar boleto sem desconto', ...ds });
   }
-  // Atualizar boleto 20% — 3 tabs
+  // Atualizar boleto — 3 tabs
   if (showOn(activeTab, '3tabs')) {
-    items.push({ icon: <BulkIconRefreshCcw/>, label: 'Atualizar boleto 20%' });
+    items.push({ icon: <BulkIconRefreshCcw/>, label: 'Atualizar boleto' });
   }
   // Baixar boleto — 3 tabs
   if (showOn(activeTab, '3tabs')) {
@@ -4333,7 +4333,7 @@ const BOLETO_ELIGIBLE_VARIANTS = new Set(['indique_agora']);
 const INDICACAO_EXCLUDED_VARIANTS = new Set([
   'indicacao_vencida',  // Prazo expirado sem indicação
   'vencida_sem_acao',   // Prazo expirado sem ação do condutor
-  'condutor_indicado',  // Indicação concluída → vai para Pagamento (boleto 20%)
+  'condutor_indicado',  // Indicação concluída → vai para Pagamento (boleto)
 ]);
 
 const PENAL_STATUS = {
@@ -4417,7 +4417,7 @@ function CardMoreMenu({ row }) {
 
   const ITEMS = [
     { icon: <IconDownload />,  label: 'Baixar boleto' },
-    { icon: <IconRefresh />,   label: 'Atualizar boleto 20%' },
+    { icon: <IconRefresh />,   label: 'Atualizar boleto' },
     { icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 5v14"/><path d="M8 5v14"/><path d="M12 5v14"/><path d="M17 5v14"/><path d="M21 5v14"/></svg>, label: 'Solicitar boleto SNE 40%' },
     { icon: <IconStatus />,    label: 'Status de tratamento', chevron: true, isStatus: true },
     { icon: <IconPrint />,     label: 'Imprimir' },
@@ -10363,8 +10363,8 @@ function MoreDropdown({ onClose, anchorRect }) {
         onClick={e => e.stopPropagation()}
       >
         <div style={{ padding: '10px 8px', display: 'flex', flexDirection: 'column', gap: 2 }}>
-          <MenuItem icon={<DetIconDownload />}  label="Baixar boleto 20%"                  onClick={onClose} />
-          <MenuItem icon={<DetIconRefresh />}   label="Atualizar boleto 20%"               onClick={onClose} />
+          <MenuItem icon={<DetIconDownload />}  label="Baixar boleto"                  onClick={onClose} />
+          <MenuItem icon={<DetIconRefresh />}   label="Atualizar boleto"               onClick={onClose} />
           <MenuItem icon={<DetIconBarcode />}   label="Solicitar boleto 40%"               onClick={onClose} />
 
           {/* Status de tratamento — sub-menu trigger */}
@@ -10913,44 +10913,6 @@ function AITDetail({ aitId, onBack }) {
                   <InfoField label="RG" value={ait.rgCondutor} />
                   <InfoField label="Data da Indicação" value={ait.dataIndicacao2} />
                 </InfoRow>
-              </div>
-
-              {/* ── Bloco 5: Multas relacionadas ── */}
-              <div style={{
-                background: 'var(--color-neutral-100)', border: '1px solid var(--color-neutral-300)',
-                borderRadius: 8, padding: 32, display: 'flex', flexDirection: 'column', gap: 20,
-              }}>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                    <div style={{ width: 40, height: 40, borderRadius: 6, flexShrink: 0, background: 'var(--color-primary-200)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--color-primary-600)' }}><DetIconRefresh /></div>
-                    <span style={{ fontSize: 18, fontWeight: 700, color: 'var(--color-neutral-900)' }}>Multas relacionadas</span>
-                  </div>
-                  <div style={{ height: 1, background: 'var(--color-neutral-300)' }} />
-                </div>
-                {ait.multasRelacionadas && ait.multasRelacionadas.length > 0 ? (
-                  <div style={{ display: 'flex', flexDirection: 'column' }}>
-                    {/* Header da tabela */}
-                    <div style={{ display: 'flex', padding: '8px 16px', background: 'var(--color-neutral-100)', borderBottom: '1px solid var(--color-neutral-300)' }}>
-                      {['AIT', 'Infração', 'Valor da Multa', 'Com Desconto', 'Valor Pago', 'Vencimento'].map(col => (
-                        <span key={col} style={{ flex: 1, fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', color: 'var(--color-neutral-700)' }}>{col}</span>
-                      ))}
-                    </div>
-                    {ait.multasRelacionadas.map((m, i) => (
-                      <div key={i} style={{ display: 'flex', padding: '12px 16px', borderBottom: '1px solid var(--color-neutral-200)', alignItems: 'center' }}>
-                        <span style={{ flex: 1, fontSize: 13, fontWeight: 700, color: 'var(--color-primary-600)', display: 'inline-flex', alignItems: 'center', gap: 4 }}>{m.ait} <DetIconLinkOut /></span>
-                        <span style={{ flex: 1, fontSize: 13, color: 'var(--color-neutral-900)' }}>{m.infracao}</span>
-                        <span style={{ flex: 1, fontSize: 13, color: 'var(--color-neutral-900)' }}>{m.valor}</span>
-                        <span style={{ flex: 1, fontSize: 13, color: 'var(--color-neutral-900)' }}>{m.valorDesconto}</span>
-                        <span style={{ flex: 1, fontSize: 13, color: 'var(--color-neutral-900)' }}>{m.valorPago || '—'}</span>
-                        <span style={{ flex: 1, fontSize: 13, color: 'var(--color-neutral-900)' }}>{m.vencimento}</span>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '32px 16px', color: 'var(--color-neutral-400)', fontSize: 14 }}>
-                    Nenhuma multa relacionada
-                  </div>
-                )}
               </div>
 
               {/* ── Bloco 6: Anexos ── */}

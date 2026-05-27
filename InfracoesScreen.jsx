@@ -513,7 +513,7 @@ const BOLETO_ELIGIBLE_VARIANTS = new Set([
 const INDICACAO_EXCLUDED_VARIANTS = new Set([
   'indicacao_vencida',  // Prazo expirado sem indicação
   'vencida_sem_acao',   // Prazo expirado sem ação do condutor
-  'condutor_indicado',  // Indicação concluída → vai para Pagamento (boleto 20%)
+  'condutor_indicado',  // Indicação concluída → vai para Pagamento (boleto)
 ]);
 
 const PENAL_STATUS = {
@@ -599,7 +599,7 @@ function CardMoreMenu({ row }) {
 
   const ITEMS = [
     { icon: <IconDownload />,  label: 'Baixar boleto' },
-    { icon: <IconRefresh />,   label: 'Atualizar boleto 20%' },
+    { icon: <IconRefresh />,   label: 'Atualizar boleto' },
     { icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 5v14"/><path d="M8 5v14"/><path d="M12 5v14"/><path d="M17 5v14"/><path d="M21 5v14"/></svg>, label: 'Solicitar boleto SNE 40%' },
     { icon: <IconStatus />,    label: 'Status de tratamento', chevron: true, isStatus: true },
     { icon: <IconPrint />,     label: 'Imprimir' },
