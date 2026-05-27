@@ -740,6 +740,7 @@ function InfracaoCard({ row, selected, onSelect, onCardClick, onOpenIndicacao, o
 
   const BlueStripe   = () => <div style={{ width: 4, background: '#2a89ef', flexShrink: 0, alignSelf: 'stretch' }} />;
   const OrangeStripe = () => <div style={{ width: 4, background: '#f9401b', flexShrink: 0, alignSelf: 'stretch' }} />;
+  const GrayStripe   = () => <div style={{ width: 4, background: 'var(--color-neutral-300)', flexShrink: 0, alignSelf: 'stretch' }} />;
 
   const CircleActionBtn = ({ title, children, onClick }) => (
     <button title={title} onClick={onClick}
@@ -842,7 +843,7 @@ function InfracaoCard({ row, selected, onSelect, onCardClick, onOpenIndicacao, o
         minHeight: 64, overflow: 'hidden',
       }}>
 
-      {isNotificacao ? <BlueStripe /> : <OrangeStripe />}
+      {row.statusVariant === 'indique_agora' ? <BlueStripe /> : row.statusVariant === 'em_aberto' ? <OrangeStripe /> : <GrayStripe />}
       <CheckboxArea />
 
       {/* ── Information Container ── */}
