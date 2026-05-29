@@ -101,6 +101,28 @@ const DetIconLock = () => (
 const DetIconDots = () => (
   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="5" cy="12" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="19" cy="12" r="1.5"/></svg>
 );
+const DetIconMessageSquare = () => (
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+);
+
+// ─── Empty state reutilizável para blocos do detalhe ──────────────────────────
+function DetBlockEmptyState({ title, description }) {
+  return (
+    <div style={{
+      display: 'flex', flexDirection: 'column', alignItems: 'center',
+      justifyContent: 'center', padding: '32px 16px', textAlign: 'center', gap: 8,
+    }}>
+      <span style={{
+        fontSize: 16, fontWeight: 700, color: 'var(--color-neutral-900)',
+        fontFamily: 'var(--font-family-primary)',
+      }}>{title}</span>
+      <span style={{
+        fontSize: 14, fontWeight: 400, color: 'var(--color-neutral-600)',
+        fontFamily: 'var(--font-family-primary)', maxWidth: 420,
+      }}>{description}</span>
+    </div>
+  );
+}
 
 // ─── EventIcon ────────────────────────────────────────────────────────────────
 function EventIcon({ type, size = 'sm' }) {
@@ -406,7 +428,7 @@ const MOCK_DEFAULT = {
   dataPagamento: null,
   centroCusto: null,
   pago: 'Não',
-  statusBoletoSne: 'SOLICITE O BOLETO 40%',
+  statusBoletoSne: 'BOLETO DISPONÍVEL',
   descontoCondutorAplicado: null,
   cnhCondutor: null,
   cedulaCnh: null,
@@ -604,7 +626,7 @@ const MOCK_INDIQUE_AGORA = {
   dataPagamento: null,
   centroCusto: null,
   pago: 'Não',
-  statusBoletoSne: 'SOLICITE O BOLETO 40%',
+  statusBoletoSne: 'BOLETO DISPONÍVEL',
   descontoCondutorAplicado: null,
   cnhCondutor: null,
   cedulaCnh: null,
@@ -1930,52 +1952,61 @@ function AITDetail({ aitId, onBack }) {
                 }}>
                 <PanelHeader icon={<DetIconBell />} title="Histórico" />
 
-                {/* Badge de tipo de indicação */}
-                {ait.indicacaoTipo && (
-                  <div style={{
-                    display: 'inline-flex', alignItems: 'center', gap: 6,
-                    padding: '4px 10px', borderRadius: 6, width: 'fit-content',
-                    background: ait.indicacaoTipo === 'sne' ? 'var(--color-information-100)' : 'var(--color-neutral-200)',
-                    border: `1px solid ${ait.indicacaoTipo === 'sne' ? 'var(--color-information-300)' : 'var(--color-neutral-400)'}`,
-                    fontSize: 12, fontWeight: 700,
-                    color: ait.indicacaoTipo === 'sne' ? 'var(--color-information-700)' : 'var(--color-neutral-700)',
-                  }}>
-                    {ait.indicacaoTipo === 'sne' ? <DetIconUser /> : <DetIconUploadCloud />}
-                    {ait.indicacaoTipo === 'sne' ? 'Indicação via CPF' : 'Indicação via Formulário'}
-                  </div>
-                )}
-
-                {/* Timeline */}
-                <div style={{ position: 'relative' }}>
-                  {ait.timeline.map((event, i) => {
-                    const isFirst = i === 0;
-                    const isLast = i === ait.timeline.length - 1;
-                    const isMail = event.type === 'mail';
-                    return (
-                      <div key={event.id} style={{ display: 'flex', gap: 16, alignItems: 'flex-start' }}>
-                        {/* Dot column */}
-                        <div style={{
-                          width: 10, flexShrink: 0,
-                          display: 'flex', flexDirection: 'column', alignItems: 'center',
-                          alignSelf: 'stretch',
-                        }}>
-                          <div style={{ width: 1, height: isFirst ? 0 : 12, background: 'var(--color-neutral-300)', flexShrink: 0 }} />
-                          <div style={{
-                            width: isMail ? 6 : 10, height: isMail ? 6 : 10,
-                            borderRadius: '50%', flexShrink: 0,
-                            background: getDotColor(event.type),
-                            margin: isMail ? '2px 2px' : 0,
-                          }} />
-                          {!isLast && <div style={{ width: 1, flex: 1, minHeight: 8, background: 'var(--color-neutral-300)' }} />}
-                        </div>
-                        {/* Card */}
-                        <div style={{ flex: 1, minWidth: 0, paddingBottom: isLast ? 0 : 8 }}>
-                          <TLEvent event={event} />
-                        </div>
+                {(!ait.timeline || ait.timeline.length === 0) ? (
+                  <DetBlockEmptyState
+                    title="Ainda não há dados da indicação de condutor"
+                    description="Quando o processo de indicação de condutor for iniciado, as informações aparecerão aqui."
+                  />
+                ) : (
+                  <>
+                    {/* Badge de tipo de indicação */}
+                    {ait.indicacaoTipo && (
+                      <div style={{
+                        display: 'inline-flex', alignItems: 'center', gap: 6,
+                        padding: '4px 10px', borderRadius: 6, width: 'fit-content',
+                        background: ait.indicacaoTipo === 'sne' ? 'var(--color-information-100)' : 'var(--color-neutral-200)',
+                        border: `1px solid ${ait.indicacaoTipo === 'sne' ? 'var(--color-information-300)' : 'var(--color-neutral-400)'}`,
+                        fontSize: 12, fontWeight: 700,
+                        color: ait.indicacaoTipo === 'sne' ? 'var(--color-information-700)' : 'var(--color-neutral-700)',
+                      }}>
+                        {ait.indicacaoTipo === 'sne' ? <DetIconUser /> : <DetIconUploadCloud />}
+                        {ait.indicacaoTipo === 'sne' ? 'Indicação via CPF' : 'Indicação via Formulário'}
                       </div>
-                    );
-                  })}
-                </div>
+                    )}
+
+                    {/* Timeline */}
+                    <div style={{ position: 'relative' }}>
+                      {ait.timeline.map((event, i) => {
+                        const isFirst = i === 0;
+                        const isLast = i === ait.timeline.length - 1;
+                        const isMail = event.type === 'mail';
+                        return (
+                          <div key={event.id} style={{ display: 'flex', gap: 16, alignItems: 'flex-start' }}>
+                            {/* Dot column */}
+                            <div style={{
+                              width: 10, flexShrink: 0,
+                              display: 'flex', flexDirection: 'column', alignItems: 'center',
+                              alignSelf: 'stretch',
+                            }}>
+                              <div style={{ width: 1, height: isFirst ? 0 : 12, background: 'var(--color-neutral-300)', flexShrink: 0 }} />
+                              <div style={{
+                                width: isMail ? 6 : 10, height: isMail ? 6 : 10,
+                                borderRadius: '50%', flexShrink: 0,
+                                background: getDotColor(event.type),
+                                margin: isMail ? '2px 2px' : 0,
+                              }} />
+                              {!isLast && <div style={{ width: 1, flex: 1, minHeight: 8, background: 'var(--color-neutral-300)' }} />}
+                            </div>
+                            {/* Card */}
+                            <div style={{ flex: 1, minWidth: 0, paddingBottom: isLast ? 0 : 8 }}>
+                              <TLEvent event={event} />
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </>
+                )}
               </div>
               )}
 
@@ -2099,10 +2130,10 @@ function AITDetail({ aitId, onBack }) {
                 <InfoRow>
                   <div style={{ flex: '1 0 0', display: 'flex', flexDirection: 'column', gap: 8, minWidth: 0 }}>
                     <span style={{ fontSize: 12, fontWeight: 400, textTransform: 'uppercase', letterSpacing: '0.04em', color: 'var(--color-neutral-700)' }}>Status Solicitação Boleto</span>
-                    {ait.statusBoletoSne === 'SOLICITE O BOLETO 40%' ? (
+                    {ait.statusBoletoSne === 'BOLETO DISPONÍVEL' ? (
                       <span style={{
                         display: 'inline-flex', alignItems: 'center', padding: '3px 10px', borderRadius: 20, width: 'fit-content',
-                        background: '#fff0ed', color: '#f9401b',
+                        background: '#e8f3ea', color: '#405c44',
                         fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.03em',
                       }}>{ait.statusBoletoSne}</span>
                     ) : (
@@ -2125,25 +2156,34 @@ function AITDetail({ aitId, onBack }) {
                   </div>
                   <div style={{ height: 1, background: 'var(--color-neutral-300)' }} />
                 </div>
-                <InfoRow>
-                  <div style={{ flex: '1 0 0', display: 'flex', flexDirection: 'column', gap: 8, minWidth: 0 }}>
-                    <span style={{ fontSize: 12, fontWeight: 400, textTransform: 'uppercase', letterSpacing: '0.04em', color: 'var(--color-neutral-700)' }}>Condutor Indicado</span>
-                    {ait.condutor ? (
-                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 14, fontWeight: 700, color: 'var(--color-primary-600)' }}>
-                        {ait.condutor.nome} <DetIconLinkOut />
-                      </span>
-                    ) : (
-                      <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--color-neutral-900)' }}>—</span>
-                    )}
-                  </div>
-                  <InfoField label="CNH" value={ait.cnhCondutor} />
-                  <InfoField label="Número da Cédula da CNH" value={ait.cedulaCnh} />
-                </InfoRow>
-                <div style={{ height: 1, background: 'var(--color-neutral-300)' }} />
-                <InfoRow>
-                  <InfoField label="RG" value={ait.rgCondutor} />
-                  <InfoField label="Data da Indicação" value={ait.dataIndicacao2} />
-                </InfoRow>
+                {(!ait.condutor && !ait.cnhCondutor && !ait.rgCondutor && !ait.dataIndicacao2) ? (
+                  <DetBlockEmptyState
+                    title="Você ainda não possui um condutor responsável"
+                    description="Realize a indicação do condutor para transferir a responsabilidade da infração para ele ou vincule um condutor"
+                  />
+                ) : (
+                  <>
+                    <InfoRow>
+                      <div style={{ flex: '1 0 0', display: 'flex', flexDirection: 'column', gap: 8, minWidth: 0 }}>
+                        <span style={{ fontSize: 12, fontWeight: 400, textTransform: 'uppercase', letterSpacing: '0.04em', color: 'var(--color-neutral-700)' }}>Condutor Indicado</span>
+                        {ait.condutor ? (
+                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 14, fontWeight: 700, color: 'var(--color-primary-600)' }}>
+                            {ait.condutor.nome} <DetIconLinkOut />
+                          </span>
+                        ) : (
+                          <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--color-neutral-900)' }}>—</span>
+                        )}
+                      </div>
+                      <InfoField label="CNH" value={ait.cnhCondutor} />
+                      <InfoField label="Número da Cédula da CNH" value={ait.cedulaCnh} />
+                    </InfoRow>
+                    <div style={{ height: 1, background: 'var(--color-neutral-300)' }} />
+                    <InfoRow>
+                      <InfoField label="RG" value={ait.rgCondutor} />
+                      <InfoField label="Data da Indicação" value={ait.dataIndicacao2} />
+                    </InfoRow>
+                  </>
+                )}
               </div>
 
               {/* ── Bloco 6: Anexos ── */}
@@ -2199,9 +2239,55 @@ function AITDetail({ aitId, onBack }) {
                     ))}
                   </div>
                 ) : (
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '32px 16px', color: 'var(--color-neutral-400)', fontSize: 14 }}>
-                    Nenhum anexo cadastrado
+                  <DetBlockEmptyState
+                    title="Nenhum anexo cadastrado"
+                    description="Os anexos ficarão disponíveis aqui"
+                  />
+                )}
+              </div>
+
+              {/* ── Bloco 7: Observações ── */}
+              <div style={{
+                background: 'var(--color-neutral-100)', border: '1px solid var(--color-neutral-300)',
+                borderRadius: 8, padding: 32, display: 'flex', flexDirection: 'column', gap: 20,
+              }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                      <div style={{ width: 40, height: 40, borderRadius: 6, flexShrink: 0, background: 'var(--color-primary-200)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--color-primary-600)' }}><DetIconMessageSquare /></div>
+                      <span style={{ fontSize: 18, fontWeight: 700, color: 'var(--color-neutral-900)' }}>Observações</span>
+                    </div>
+                    <button style={{
+                      display: 'inline-flex', alignItems: 'center', gap: 6,
+                      padding: '6px 14px', borderRadius: 8,
+                      border: '1px solid var(--color-primary-500)',
+                      background: 'transparent', color: 'var(--color-primary-600)',
+                      fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-family-primary)',
+                    }}
+                      onMouseEnter={e => e.currentTarget.style.background = 'var(--color-primary-100)'}
+                      onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                    ><DetIconPlus /> Adicionar</button>
                   </div>
+                  <div style={{ height: 1, background: 'var(--color-neutral-300)' }} />
+                </div>
+                {ait.observacoes && ait.observacoes.length > 0 ? (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                    {ait.observacoes.map((obs, i) => (
+                      <div key={i} style={{
+                        padding: '12px 16px', borderRadius: 8,
+                        background: '#fff', border: '1px solid var(--color-neutral-300)',
+                        display: 'flex', flexDirection: 'column', gap: 4,
+                      }}>
+                        <span style={{ fontSize: 13, color: 'var(--color-neutral-900)', fontFamily: 'var(--font-family-primary)' }}>{obs.texto}</span>
+                        <span style={{ fontSize: 11, color: 'var(--color-neutral-600)', fontFamily: 'var(--font-family-primary)' }}>{obs.autor} · {obs.data}</span>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <DetBlockEmptyState
+                    title="Nenhuma observação cadastrada"
+                    description="As observações ficarão disponíveis aqui"
+                  />
                 )}
               </div>
 

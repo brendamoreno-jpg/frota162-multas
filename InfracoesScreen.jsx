@@ -372,7 +372,15 @@ function FilterChip({ label, count, active, onClick, icon, chipColor = 'default'
 }
 
 // ─── Tooltip do ícone de prazo de indicação ───────────────────────────────────
-function PrazoInfoTooltip({ prazoOrgaoData }) {
+function subtractDays(dateStr, days) {
+  if (!dateStr) return 'DD/MM/AAAA';
+  const [d, m, y] = dateStr.split('/').map(Number);
+  const dt = new Date(y, m - 1, d);
+  dt.setDate(dt.getDate() - days);
+  return String(dt.getDate()).padStart(2, '0') + '/' + String(dt.getMonth() + 1).padStart(2, '0') + '/' + dt.getFullYear();
+}
+
+function PrazoInfoTooltip({ prazoDataFormatada }) {
   const [hov, setHov] = useInfState(false);
   const [pos, setPos] = useInfState({ top: 0, left: 0 });
   const ref = useInfRef(null);
@@ -385,7 +393,8 @@ function PrazoInfoTooltip({ prazoOrgaoData }) {
     setHov(true);
   }
 
-  const text = 'Este é o prazo da indicação pela plataforma. O prazo de indicação pelo órgão é até ' + (prazoOrgaoData || 'DD/MM/AAAA');
+  const platDate = subtractDays(prazoDataFormatada, 5);
+  const text = 'Este é o prazo de indicação no órgão. O prazo de indicação pela plataforma é até ' + platDate;
 
   return (
     <span ref={ref} onMouseEnter={handleEnter} onMouseLeave={() => setHov(false)}
@@ -540,7 +549,7 @@ const BOLETO_TAGS = {
   boleto_40_disponivel: { label: 'BOLETO 40% DISPONÍVEL', bg: 'var(--color-success-100)',     color: 'var(--color-success-700)',       action: 'download',   tooltip: 'Baixe o boleto com 40% de desconto para pagar.' },
   boleto_nao_disponivel:{ label: 'BOLETO NÃO DISPONÍVEL', bg: 'var(--color-error-100)',       color: 'var(--color-error-700)',                               tooltip: 'O boleto de 40% não está disponível para esta multa.' },
   // ── Tags genéricas (sem ação) ──────────────────────────────────────────────
-  boleto_disponivel:    { label: 'BOLETO DISPONÍVEL',      bg: '#e8f3ea', color: '#405c44' },
+  boleto_disponivel:    { label: 'BOLETO DISPONÍVEL',      bg: '#e8f3ea', color: '#405c44', tooltip: 'Baixe o boleto para realizar o pagamento da notificação.' },
   boleto_solicitado:    { label: 'BOLETO SOLICITADO',       bg: 'var(--color-information-100)', color: 'var(--color-information-700)' },
 };
 
@@ -600,7 +609,6 @@ function CardMoreMenu({ row }) {
   const ITEMS = [
     { icon: <IconDownload />,  label: 'Baixar boleto' },
     { icon: <IconRefresh />,   label: 'Atualizar boleto' },
-    { icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 5v14"/><path d="M8 5v14"/><path d="M12 5v14"/><path d="M17 5v14"/><path d="M21 5v14"/></svg>, label: 'Solicitar boleto SNE 40%' },
     { icon: <IconStatus />,    label: 'Status de tratamento', chevron: true, isStatus: true },
     { icon: <IconPrint />,     label: 'Imprimir' },
   ];
@@ -843,7 +851,7 @@ function InfracaoCard({ row, selected, onSelect, onCardClick, onOpenIndicacao, o
         minHeight: 64, overflow: 'hidden',
       }}>
 
-      {row.statusVariant === 'indique_agora' ? <BlueStripe /> : row.statusVariant === 'em_aberto' ? <OrangeStripe /> : <GrayStripe />}
+      {isNotificacao ? <BlueStripe /> : isPenalidade ? <OrangeStripe /> : <GrayStripe />}
       <CheckboxArea />
 
       {/* ── Information Container ── */}
@@ -865,13 +873,13 @@ function InfracaoCard({ row, selected, onSelect, onCardClick, onOpenIndicacao, o
               }
             />
           )}
-          {/* Tag de boleto (notificação) — apenas visual, ação está no botão */}
+          {/* Tag de boleto (notificação) — sempre exibe "BOLETO DISPONÍVEL" para qualquer boletoTag */}
           {isNotificacao && boletoCfg && (
             <StatusPill
-              bg={boletoCfg.bg || '#e8f3ea'}
-              color={boletoCfg.color || '#405c44'}
-              label={boletoCfg.label}
-              tooltip={boletoCfg.tooltip}
+              bg='#e8f3ea'
+              color='#405c44'
+              label='BOLETO DISPONÍVEL'
+              tooltip='Baixe o boleto para realizar o pagamento da notificação.'
             />
           )}
           {/* Tag secundária de indicação (apenas penalidade) — row.indLabel sobrescreve o padrão do status */}
@@ -925,7 +933,7 @@ function InfracaoCard({ row, selected, onSelect, onCardClick, onOpenIndicacao, o
               color: '#0a0a0a',
             }}>{row.prazoDataFormatada || '—'}</span>
             {row.prazoDataFormatada && (
-              <PrazoInfoTooltip prazoOrgaoData={row.prazoOrgaoData} />
+              <PrazoInfoTooltip prazoDataFormatada={row.prazoDataFormatada} />
             )}
           </div>
         </NewMetaCol>
@@ -1869,377 +1877,1123 @@ function DemoFab({ listState, setListState }) {
 
 }
 
+// ─── ModalIndicacaoCondutor ───────────────────────────────────────────────────
+function ModalIndicacaoCondutor({ row, onClose }) {
+  useInfEffect(() => {
+    const handler = (e) => { if (e.key === 'Escape') onClose(); };
+    document.addEventListener('keydown', handler);
+    return () => document.removeEventListener('keydown', handler);
+  }, []);
+
+  const [comoFunciona, setComoFunciona] = useInfState(false);
+
+  const inputStyle = {
+    display: 'flex', alignItems: 'center', gap: 10,
+    height: 40, padding: '0 14px',
+    border: '1px solid var(--color-neutral-400)',
+    borderRadius: 8, background: '#fff',
+    fontFamily: 'var(--font-family-primary)',
+    fontSize: 14, color: 'var(--color-neutral-600)',
+    width: '100%', boxSizing: 'border-box',
+  };
+
+  // Ícones dos inputs
+  const IcoSearch = () => (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, color: 'var(--color-neutral-400)' }}>
+      <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+    </svg>
+  );
+  const IcoUser = () => (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, color: 'var(--color-neutral-400)' }}>
+      <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/>
+    </svg>
+  );
+  const IcoPhone = () => (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, color: 'var(--color-neutral-400)' }}>
+      <path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 10.8a19.79 19.79 0 01-3.07-8.68A2 2 0 012 0h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L6.09 7.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 14.92z"/>
+    </svg>
+  );
+  const IcoMail = () => (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, color: 'var(--color-neutral-400)' }}>
+      <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/>
+    </svg>
+  );
+  const IcoFile = () => (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+      <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/>
+    </svg>
+  );
+  const IcoInfo = () => (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--color-error-600)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+      <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+    </svg>
+  );
+  const IcoChevron = () => (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
+      style={{ transition: 'transform .2s', transform: comoFunciona ? 'rotate(180deg)' : 'rotate(0deg)', flexShrink: 0 }}>
+      <polyline points="6 9 12 15 18 9"/>
+    </svg>
+  );
+
+  return (
+    <div onClick={onClose} style={{
+      position: 'fixed', inset: 0, zIndex: 10000,
+      background: 'rgba(0,0,0,0.45)',
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      animation: 'fadeInOverlay .18s ease',
+    }}>
+      <div onClick={(e) => e.stopPropagation()} style={{
+        background: '#fff', borderRadius: 8,
+        width: 640, maxWidth: 'calc(100vw - 32px)',
+        boxShadow: '2px 2px 8px rgba(0,0,0,0.08)',
+        fontFamily: 'var(--font-family-primary)',
+        animation: 'slideUpModal .2s cubic-bezier(.16,1,.3,1)',
+        display: 'flex', flexDirection: 'column', gap: 16, padding: 16,
+      }}>
+
+        {/* Header */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <span style={{ fontSize: 18, fontWeight: 700, color: 'var(--color-neutral-900)', lineHeight: '27px' }}>
+            Indicação do condutor
+          </span>
+          <button onClick={onClose} style={{
+            width: 24, height: 24, border: 'none', background: 'transparent',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            cursor: 'pointer', color: 'var(--color-neutral-700)', borderRadius: 4,
+            transition: 'background .12s',
+          }}
+            onMouseEnter={e => e.currentTarget.style.background = 'var(--color-neutral-200)'}
+            onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+            </svg>
+          </button>
+        </div>
+
+        {/* Body */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+
+          {/* Description */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, color: 'var(--color-neutral-800)', fontSize: 16, lineHeight: '24px' }}>
+            <p style={{ margin: 0 }}>
+              Para indicar, basta informar o Nome completo e o CPF do condutor. Ele recebe a notificação e aceita a indicação direto no app da <strong>Carteira Digital de Trânsito.</strong>
+            </p>
+            <p style={{ margin: 0 }}>
+              Caso queira, você pode fazer a indicação via formulário clicando em "Indicar pelo formulário".
+            </p>
+          </div>
+
+          {/* Row 1: Nome + CPF */}
+          <div style={{ display: 'flex', gap: 20 }}>
+            {/* Nome completo */}
+            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 4 }}>
+              <label style={{ display: 'flex', alignItems: 'center', gap: 0, fontSize: 14, fontWeight: 700, color: 'var(--color-neutral-900)', lineHeight: '21px' }}>
+                Nome completo<span style={{ color: 'var(--color-error-600)' }}>*</span>
+              </label>
+              <div style={inputStyle}>
+                <span style={{ flex: 1, color: 'var(--color-neutral-600)' }}>Digite o nome</span>
+                <IcoSearch />
+              </div>
+            </div>
+            {/* CPF */}
+            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 4 }}>
+              <label style={{ display: 'flex', alignItems: 'center', fontSize: 14, fontWeight: 700, color: 'var(--color-neutral-900)', lineHeight: '21px' }}>
+                CPF<span style={{ color: 'var(--color-error-600)' }}>*</span>
+              </label>
+              <div style={inputStyle}>
+                <IcoUser />
+                <span style={{ flex: 1, color: 'var(--color-neutral-600)' }}>Digite o CPF</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Row 2: Celular + E-mail */}
+          <div style={{ display: 'flex', gap: 20 }}>
+            {/* Celular */}
+            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 4 }}>
+              <label style={{ fontSize: 14, fontWeight: 700, color: 'var(--color-neutral-900)', lineHeight: '21px' }}>
+                Celular (Whatsapp)
+              </label>
+              <div style={inputStyle}>
+                <IcoPhone />
+                <span style={{ flex: 1, color: 'var(--color-neutral-600)' }}>(DDD) + número do celular</span>
+              </div>
+            </div>
+            {/* E-mail */}
+            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 4 }}>
+              <label style={{ fontSize: 14, fontWeight: 700, color: 'var(--color-neutral-900)', lineHeight: '21px' }}>
+                E-mail
+              </label>
+              <div style={inputStyle}>
+                <IcoMail />
+                <span style={{ flex: 1, color: 'var(--color-neutral-600)' }}>Digite o e-mail do condutor</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Como funciona? */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
+            <button onClick={() => setComoFunciona(!comoFunciona)} style={{
+              display: 'flex', alignItems: 'center', gap: 4,
+              border: 'none', background: 'transparent', cursor: 'pointer', padding: 0,
+              fontFamily: 'var(--font-family-primary)',
+            }}>
+              <IcoInfo />
+              <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--color-neutral-900)', lineHeight: '21px' }}>Como funciona?</span>
+              <IcoChevron />
+            </button>
+            {comoFunciona && (
+              <div style={{ marginTop: 8, padding: '12px 16px', background: 'var(--color-neutral-200)', borderRadius: 8, fontSize: 14, color: 'var(--color-neutral-700)', lineHeight: '21px' }}>
+                <p style={{ margin: '0 0 8px' }}>1. Informe o nome completo e CPF do condutor indicado pela multa.</p>
+                <p style={{ margin: '0 0 8px' }}>2. O condutor receberá uma notificação no app da Carteira Digital de Trânsito.</p>
+                <p style={{ margin: 0 }}>3. Após o aceite, a responsabilidade da multa é transferida para o condutor indicado.</p>
+              </div>
+            )}
+          </div>
+
+          {/* Footer */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingTop: 16, borderTop: '1px solid transparent' }}>
+            {/* Indicar pelo formulário */}
+            <button style={{
+              display: 'inline-flex', alignItems: 'center', gap: 8,
+              height: 40, padding: '0 16px',
+              border: '1px solid var(--color-neutral-400)', borderRadius: 8,
+              background: '#fff', cursor: 'pointer',
+              fontSize: 14, fontWeight: 700, color: 'var(--color-neutral-900)',
+              fontFamily: 'var(--font-family-primary)',
+              transition: 'background .12s',
+            }}
+              onMouseEnter={e => e.currentTarget.style.background = 'var(--color-neutral-200)'}
+              onMouseLeave={e => e.currentTarget.style.background = '#fff'}
+            >
+              <IcoFile />
+              Indicar pelo formulário
+            </button>
+
+            {/* Cancelar + Avançar */}
+            <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
+              <button onClick={onClose} style={{
+                height: 40, padding: '0 16px', border: 'none', background: 'transparent',
+                fontSize: 14, fontWeight: 700, color: 'var(--color-neutral-900)',
+                cursor: 'pointer', fontFamily: 'var(--font-family-primary)', borderRadius: 8,
+                transition: 'background .12s',
+              }}
+                onMouseEnter={e => e.currentTarget.style.background = 'var(--color-neutral-200)'}
+                onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+              >
+                Cancelar
+              </button>
+              <button style={{
+                height: 40, padding: '0 16px', border: 'none', borderRadius: 8,
+                background: 'var(--color-neutral-500)',
+                fontSize: 14, fontWeight: 700, color: 'var(--color-neutral-800)',
+                cursor: 'not-allowed', fontFamily: 'var(--font-family-primary)',
+              }}>
+                Avançar
+              </button>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── buildDrawerTimeline — gera timeline por statusVariant ───────────────────
+function buildDrawerTimeline(row) {
+  if (!row) return [];
+  const s   = row.statusVariant || '';
+  const ait = row.ait || '—';
+  const cod = row.codigoInfracao || '';
+  const nom = (row.nomeInfracao || '').toUpperCase();
+
+  function addD(str, n) {
+    if (!str) return str;
+    const [dd, mm, yy] = str.split('/').map(Number);
+    const dt = new Date(yy, mm - 1, dd + n);
+    return `${String(dt.getDate()).padStart(2,'0')}/${String(dt.getMonth()+1).padStart(2,'0')}/${dt.getFullYear()}`;
+  }
+
+  const d0  = row.dataInfracao || '01/01/2025';
+  const d15 = addD(d0, 15);
+  const d30 = addD(d0, 30);
+  const d32 = addD(d0, 32);
+  const d35 = addD(d0, 35);
+  const d40 = addD(d0, 40);
+  const d45 = addD(d0, 45);
+  const d50 = addD(d0, 50);
+
+  const bMulData    = { kind: 'date', date: d0 };
+  const bMulCard    = { kind: 'card', iconBg: 'blue', iconType: 'file',
+                         title: `Multa recebida (AIT ${ait})`,
+                         description: `${ait} | ${cod} — ${nom}` };
+  const bBarcode    = { kind: 'alert', icon: 'barcode',
+                         title: 'Solicite o boleto de 40% de desconto',
+                         subtitle: 'Ao emitir o boleto com desconto de 40% do SNE, não será mais possível indicar condutor para esta multa.' };
+  const bIndicar    = { kind: 'card', iconBg: 'blue', iconType: 'user',
+                         title: 'Indicar condutor',
+                         description: 'Indique o condutor agora pela plataforma via CPF ou Formulário de Indicação.' };
+  const bAguarData  = { kind: 'date', date: d15 };
+  const bAguarCard  = { kind: 'card', iconBg: 'blue', iconType: 'clock',
+                         title: 'Aguardando aceite do condutor',
+                         description: 'Peça para o condutor acessar a Carteira Digital de Trânsito e aceitar a indicação.' };
+  const bAceiteData = { kind: 'date', date: d30 };
+  const bAceiteCard = { kind: 'card', iconBg: 'blue', iconType: 'user',
+                         title: 'Condutor aceitou a indicação',
+                         description: 'Condutor aceitou a indicação pela Carteira Digital de Trânsito.' };
+  const bConclData  = { kind: 'date', date: d32 };
+  const bConclCard  = { kind: 'success',
+                         title: 'Indicação de condutor foi concluída com sucesso',
+                         description: 'A notificação agora passa a ser de penalidade e a responsabilidade foi transferida para o condutor indicado.' };
+  const bDispData   = { kind: 'date', date: d40 };
+  const bDispCard   = { kind: 'card', iconBg: 'orange', iconType: 'dollar',
+                         title: 'Sua multa está disponível para pagamento',
+                         description: 'Pague sua multa agora pela plataforma ou emita o boleto para pagamento externo.' };
+
+  // bloco base indicação (do mais antigo para o mais recente, array na ordem top→bottom = recente→antigo)
+  const blocoBase = [bMulData, bBarcode, bIndicar, bMulCard];
+  const blocoComAguardo = [bAguarData, bAguarCard, ...blocoBase];
+  const blocoComAceite  = [bAceiteData, bAceiteCard, ...blocoComAguardo];
+  const blocoComConclui = [bConclData, bConclCard, ...blocoComAceite];
+
+  if (s === 'aguardando_aceite') {
+    return [
+      bAguarData,
+      bAguarCard,
+      bMulData,
+      bBarcode,
+      bIndicar,
+      bMulCard,
+    ];
+  }
+
+  if (s === 'em_processamento') {
+    return [
+      { kind: 'date', date: d45 },
+      { kind: 'card', iconBg: 'orange', iconType: 'clock',
+        title: 'Pagamento em processamento',
+        description: 'Pagamento em andamento. Em breve será confirmado.' },
+      ...blocoComConclui,
+    ];
+  }
+
+  if (s === 'enviada_orgao') {
+    return [
+      { kind: 'date', date: d35 },
+      { kind: 'card', iconBg: 'orange', iconType: 'clock',
+        title: 'Formulário enviado ao órgão autuador',
+        description: 'A indicação foi submetida ao órgão autuador para análise e deferimento.' },
+      ...blocoComConclui,
+    ];
+  }
+
+  if (s === 'documentos_incorretos') {
+    return [
+      { kind: 'date', date: d50 },
+      { kind: 'card', iconBg: 'orange', iconType: 'clock',
+        title: 'Documentos incorretos ou incompletos',
+        description: 'Corrija os documentos e reenvie para que o órgão autuador analise a indicação.' },
+      { kind: 'date', date: d35 },
+      { kind: 'card', iconBg: 'orange', iconType: 'clock',
+        title: 'Formulário enviado ao órgão autuador',
+        description: 'A indicação foi submetida ao órgão autuador para análise e deferimento.' },
+      ...blocoComConclui,
+    ];
+  }
+
+  if (s === 'indique_no_orgao') {
+    return [
+      bMulData,
+      { kind: 'alert', icon: 'info',
+        title: 'Indicação deve ser feita diretamente no órgão',
+        subtitle: 'Este AIT requer que a indicação de condutor seja realizada via portal ou presencialmente no órgão autuador.' },
+      bMulCard,
+    ];
+  }
+
+  if (s === 'falha_indicacao') {
+    return [
+      { kind: 'date', date: d30 },
+      { kind: 'card', iconBg: 'orange', iconType: 'clock',
+        title: 'Falha na indicação de condutor',
+        description: 'Ocorreu uma falha no processo de indicação. Verifique os dados e tente novamente.' },
+      ...blocoComAguardo,
+    ];
+  }
+
+  if (s === 'indicacao_vencida') {
+    return [
+      { kind: 'date', date: d35 },
+      { kind: 'alert', icon: 'info',
+        title: 'Vencimento da indicação na plataforma',
+        subtitle: 'O prazo para indicação de condutor expirou. Não é mais possível indicar condutor para esta multa.' },
+      bMulData,
+      bBarcode,
+      bIndicar,
+      bMulCard,
+    ];
+  }
+
+  if (s === 'recusado_condutor') {
+    return [
+      { kind: 'date', date: d32 },
+      { kind: 'card', iconBg: 'orange', iconType: 'clock',
+        title: 'Condutor recusou a indicação',
+        description: 'O condutor indicado recusou a indicação pela Carteira Digital de Trânsito.' },
+      ...blocoComAguardo,
+    ];
+  }
+
+  // Penalidades — mostram o histórico completo de indicação + pagamento
+  if (s === 'em_aberto') {
+    return [
+      bDispData,
+      bDispCard,
+      ...blocoComConclui,
+    ];
+  }
+
+  if (s === 'aguardando_aprovacao') {
+    return [
+      { kind: 'date', date: d45 },
+      { kind: 'card', iconBg: 'orange', iconType: 'clock',
+        title: 'Pagamento aguardando aprovação',
+        description: 'O pagamento está aguardando aprovação do responsável pelos pagamentos da sua empresa.' },
+      bDispData,
+      bDispCard,
+      ...blocoComConclui,
+    ];
+  }
+
+  if (s === 'processando') {
+    return [
+      { kind: 'date', date: d50 },
+      { kind: 'card', iconBg: 'orange', iconType: 'clock',
+        title: 'Pagamento em processamento',
+        description: 'Pagamento em andamento. Em breve será confirmado.' },
+      { kind: 'date', date: d45 },
+      { kind: 'card', iconBg: 'orange', iconType: 'clock',
+        title: 'Pagamento aguardando aprovação',
+        description: 'O pagamento estava aguardando aprovação do responsável.' },
+      bDispData,
+      bDispCard,
+      ...blocoComConclui,
+    ];
+  }
+
+  if (s === 'pago') {
+    return [
+      { kind: 'date', date: d50 },
+      { kind: 'success',
+        title: 'Multa paga com sucesso!',
+        description: 'O pagamento da multa foi identificado com sucesso.' },
+      { kind: 'card', iconBg: 'orange', iconType: 'clock',
+        title: 'Pagamento em processamento',
+        description: 'Pagamento em andamento. Em breve será confirmado.' },
+      { kind: 'date', date: d45 },
+      { kind: 'card', iconBg: 'orange', iconType: 'clock',
+        title: 'Pagamento aguardando aprovação',
+        description: 'O pagamento estava aguardando aprovação do responsável.' },
+      bDispData,
+      bDispCard,
+      ...blocoComConclui,
+    ];
+  }
+
+  if (s === 'recusado') {
+    return [
+      { kind: 'date', date: d45 },
+      { kind: 'card', iconBg: 'orange', iconType: 'clock',
+        title: 'Pagamento recusado',
+        description: 'O pagamento foi recusado. Entre em contato com o suporte.' },
+      bDispData,
+      bDispCard,
+      ...blocoComConclui,
+    ];
+  }
+
+  // fallback
+  return [bMulData, bBarcode, bIndicar, bMulCard];
+}
+
 // ─── DrawerIndicacao ──────────────────────────────────────────────────────────
-function DrawerIndicacao({ row, open, onClose }) {
+function DrawerIndicacao({ row, open, onClose, onNavigateToDetail }) {
   useInfEffect(() => {
     if (!open) return;
-    const handler = (e) => {if (e.key === 'Escape') onClose();};
+    const handler = (e) => { if (e.key === 'Escape') onClose(); };
     document.addEventListener('keydown', handler);
     return () => document.removeEventListener('keydown', handler);
   }, [open]);
 
-  const TIMELINE = [
-  {
-    status: 'CONDUTOR INDICADO',
-    date: '16/04/2026 14:32',
-    desc: 'Indicação deferida pelo órgão. Condutor: Rebeca Valetich',
-    current: true
-  },
-  {
-    status: 'ENVIADA AO ÓRGÃO',
-    date: '16/04/2026 10:15',
-    desc: 'Formulário enviado ao DETRAN-SP para análise.',
-    current: false
-  },
-  {
-    status: 'EM PROCESSAMENTO',
-    date: '16/04/2026 09:58',
-    desc: 'Documentos em análise pelo time de operações.',
-    current: false
-  },
-  {
-    status: 'INDIQUE AGORA',
-    date: '14/04/2026 08:00',
-    desc: 'Notificação recebida. Prazo de indicação: 25/07/2025.',
-    current: false
-  }];
+  // Ícones inline reutilizados no timeline
+  const DwIcoUserBlue = () => (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--color-information-600)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/>
+    </svg>
+  );
+  const DwIcoClockBlue = () => (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--color-information-600)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+    </svg>
+  );
+  const DwIcoClockOrange = () => (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--color-primary-600)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+    </svg>
+  );
+  const DwIcoDollar = () => (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--color-primary-600)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/>
+    </svg>
+  );
+  const DwIcoFileBlue = () => (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--color-information-600)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/>
+    </svg>
+  );
+  const DwIcoCheckFilled = () => (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="var(--color-success-600)">
+      <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 14.5l-4-4 1.41-1.41L10 13.67l6.59-6.59L18 8.5l-8 8z"/>
+    </svg>
+  );
+  const DwIcoInfoFilled = () => (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="var(--color-neutral-400)">
+      <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/>
+    </svg>
+  );
+  const DwIcoBarcode = () => (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--color-neutral-400)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M3 5v14"/><path d="M7 5v14"/><path d="M11 5v14"/><path d="M15 5v14"/><path d="M19 5v14"/>
+    </svg>
+  );
 
+  function getCardIcon(item) {
+    if (item.iconBg === 'orange') {
+      if (item.iconType === 'dollar') return <DwIcoDollar />;
+      return <DwIcoClockOrange />;
+    }
+    if (item.iconType === 'file') return <DwIcoFileBlue />;
+    if (item.iconType === 'clock') return <DwIcoClockBlue />;
+    return <DwIcoUserBlue />;
+  }
+
+  // Linha + ponto do connector
+  function DwTLRow({ dotKind, isFirst, isLast, children }) {
+    const dotSize  = dotKind === 'date' ? 10 : 6;
+    const dotColor = dotKind === 'date' ? 'var(--color-neutral-900)' : dotKind === 'success' ? 'var(--color-success-500)' : 'var(--color-neutral-400)';
+    const showDot  = dotKind !== 'none';
+    return (
+      <div style={{ display: 'flex', gap: 16, alignItems: 'stretch' }}>
+        <div style={{ width: 10, flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+          <div style={{ flex: 1, width: 1, background: isFirst ? 'transparent' : 'var(--color-neutral-300)', minHeight: showDot ? 6 : 0 }} />
+          {showDot && <div style={{ width: dotSize, height: dotSize, borderRadius: '50%', background: dotColor, flexShrink: 0, margin: dotKind === 'date' ? 0 : '2px 0' }} />}
+          <div style={{ flex: 1, width: 1, background: isLast ? 'transparent' : 'var(--color-neutral-300)', minHeight: showDot ? 6 : 0 }} />
+        </div>
+        <div style={{ flex: 1, minWidth: 0 }}>{children}</div>
+      </div>
+    );
+  }
+
+  function DwSpacer() {
+    return (
+      <div style={{ display: 'flex', gap: 16, height: 16 }}>
+        <div style={{ width: 10, flexShrink: 0, display: 'flex', justifyContent: 'center' }}>
+          <div style={{ width: 1, height: '100%', background: 'var(--color-neutral-300)' }} />
+        </div>
+        <div style={{ flex: 1 }} />
+      </div>
+    );
+  }
+
+  function renderTimeline(items) {
+    const result = [];
+    items.forEach((item, idx) => {
+      const isFirst = idx === 0;
+      const isLast  = idx === items.length - 1;
+      const needsSpacer = !isLast && item.kind !== 'date';
+
+      if (item.kind === 'date') {
+        result.push(
+          <DwTLRow key={`d${idx}`} dotKind="date" isFirst={isFirst} isLast={isLast}>
+            <div style={{ display: 'flex', alignItems: 'center', minHeight: 56 }}>
+              <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--color-neutral-900)', fontFamily: 'var(--font-family-primary)' }}>{item.date}</span>
+            </div>
+          </DwTLRow>
+        );
+        return;
+      }
+
+      if (item.kind === 'alert') {
+        result.push(
+          <DwTLRow key={`a${idx}`} dotKind="none" isFirst={isFirst} isLast={isLast}>
+            <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start', background: 'var(--color-neutral-200)', borderRadius: 12, padding: 12 }}>
+              <span style={{ flexShrink: 0, display: 'inline-flex', marginTop: 1 }}>
+                {item.icon === 'barcode' ? <DwIcoBarcode /> : <DwIcoInfoFilled />}
+              </span>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--color-neutral-600)', fontFamily: 'var(--font-family-primary)', lineHeight: 1.5, display: 'block' }}>{item.title}</span>
+                {item.subtitle && <span style={{ fontSize: 14, fontWeight: 400, color: 'var(--color-neutral-600)', fontFamily: 'var(--font-family-primary)', lineHeight: 1.5, display: 'block', marginTop: 2 }}>{item.subtitle}</span>}
+              </div>
+            </div>
+          </DwTLRow>
+        );
+        if (needsSpacer) result.push(<DwSpacer key={`s${idx}`} />);
+        return;
+      }
+
+      if (item.kind === 'success') {
+        result.push(
+          <DwTLRow key={`sc${idx}`} dotKind="success" isFirst={isFirst} isLast={isLast}>
+            <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start', background: 'var(--color-success-100)', borderRadius: 8, padding: 16 }}>
+              <span style={{ flexShrink: 0, display: 'inline-flex', marginTop: 2 }}><DwIcoCheckFilled /></span>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <span style={{ fontSize: 16, fontWeight: 700, color: 'var(--color-neutral-900)', fontFamily: 'var(--font-family-primary)', lineHeight: 1.5, display: 'block' }}>{item.title}</span>
+                {item.description && <span style={{ fontSize: 14, fontWeight: 400, color: 'var(--color-neutral-700)', fontFamily: 'var(--font-family-primary)', lineHeight: 1.5, display: 'block', marginTop: 2 }}>{item.description}</span>}
+              </div>
+            </div>
+          </DwTLRow>
+        );
+        if (needsSpacer) result.push(<DwSpacer key={`s${idx}`} />);
+        return;
+      }
+
+      if (item.kind === 'card') {
+        const iconBgColor = item.iconBg === 'orange' ? 'var(--color-primary-200)' : 'var(--color-information-100)';
+        result.push(
+          <DwTLRow key={`c${idx}`} dotKind="card" isFirst={isFirst} isLast={isLast}>
+            <div style={{ background: 'var(--color-neutral-100)', border: '1px solid var(--color-neutral-300)', borderRadius: 8, padding: 16, display: 'flex', gap: 16, alignItems: 'center' }}>
+              <div style={{ width: 40, height: 40, borderRadius: 4, flexShrink: 0, background: iconBgColor, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                {getCardIcon(item)}
+              </div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <span style={{ fontSize: 16, fontWeight: 700, color: 'var(--color-neutral-900)', fontFamily: 'var(--font-family-primary)', lineHeight: 1.5, display: 'block' }}>{item.title}</span>
+                {item.description && <span style={{ fontSize: 14, fontWeight: 400, color: 'var(--color-neutral-700)', fontFamily: 'var(--font-family-primary)', lineHeight: 1.5, display: 'block', marginTop: 2 }}>{item.description}</span>}
+              </div>
+            </div>
+          </DwTLRow>
+        );
+        if (needsSpacer) result.push(<DwSpacer key={`s${idx}`} />);
+      }
+    });
+    return result;
+  }
 
   return (
     <>
       {/* Overlay */}
-      {open &&
-      <div
-        onClick={onClose}
-        style={{
+      {open && (
+        <div onClick={onClose} style={{
           position: 'fixed', inset: 0, zIndex: 1000,
           background: 'rgba(0,0,0,0.30)',
-          animation: 'fadeIn 200ms ease'
+          animation: 'fadeIn 200ms ease',
         }} />
+      )}
 
-      }
       {/* Drawer */}
       <div style={{
-        position: 'fixed', top: 0, right: 0, height: '100vh', width: 440,
+        position: 'fixed', top: 0, right: 0, height: '100vh', width: 480,
         background: '#fff',
-        borderLeft: '1px solid var(--color-neutral-300)',
-        boxShadow: '-4px 0 16px rgba(0,0,0,0.10)',
+        borderRadius: '8px 0 0 8px',
+        boxShadow: '2px 4px 24px rgba(0,0,0,0.16)',
         zIndex: 1001,
         display: 'flex', flexDirection: 'column',
         transform: open ? 'translateX(0)' : 'translateX(100%)',
-        transition: 'transform 250ms ease'
+        transition: 'transform 260ms cubic-bezier(.16,1,.3,1)',
+        fontFamily: 'var(--font-family-primary)',
       }}>
+
         {/* Header */}
         <div style={{
-          padding: '16px 20px',
-          borderBottom: '1px solid var(--color-neutral-200)',
-          flexShrink: 0
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          padding: 16,
+          borderBottom: '1px solid var(--color-neutral-300)',
+          flexShrink: 0,
         }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
-            <span style={{ fontSize: 16, fontWeight: 700, color: 'var(--color-neutral-900)', fontFamily: 'var(--font-family-primary)' }}>
-              Indicação de condutor
-            </span>
-            <button onClick={onClose} style={{
-              width: 28, height: 28, border: 'none', background: 'transparent',
-              borderRadius: 6, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
-              color: 'var(--color-neutral-500)', transition: 'background .12s'
-            }}
-            onMouseEnter={(e) => e.currentTarget.style.background = 'var(--color-neutral-200)'}
-            onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}>
-              
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
-              </svg>
-            </button>
-          </div>
-          <span style={{ fontSize: 12, color: 'var(--color-neutral-500)', fontFamily: 'var(--font-family-primary)' }}>
-            AIT {row?.ait} · {row?.codigoInfracao} - {row?.nomeInfracao}
+          <span style={{ fontSize: 16, fontWeight: 700, color: 'var(--color-neutral-900)' }}>
+            Indicação de condutor
           </span>
+          <button onClick={onClose} style={{
+            width: 24, height: 24, border: 'none', background: 'transparent',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            cursor: 'pointer', color: 'var(--color-neutral-700)', borderRadius: 4,
+            transition: 'background .12s',
+          }}
+            onMouseEnter={e => e.currentTarget.style.background = 'var(--color-neutral-200)'}
+            onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+            </svg>
+          </button>
         </div>
 
         {/* Body scrollável */}
-        <div style={{ flex: 1, overflowY: 'auto', padding: '20px' }}>
+        <div style={{ flex: 1, overflowY: 'auto', padding: 24 }}>
+          {(() => {
+            // Usa sempre buildDrawerTimeline — o mock usa formato legado incompatível
+            const items = row ? buildDrawerTimeline(row) : [];
+            if (!items.length) {
+              return (
+                <div style={{ color: 'var(--color-neutral-500)', fontSize: 14, textAlign: 'center', paddingTop: 40 }}>
+                  Nenhum histórico disponível.
+                </div>
+              );
+            }
+            return <div style={{ display: 'flex', flexDirection: 'column' }}>{renderTimeline(items)}</div>;
+          })()}
+        </div>
 
-          {/* Timeline */}
-          <div style={{ position: 'relative', paddingLeft: 28 }}>
-            {/* Linha vertical */}
-            <div style={{
-              position: 'absolute', left: 4, top: 10, bottom: 10,
-              width: 2, background: 'var(--color-neutral-200)'
-            }} />
-
-            {TIMELINE.map((ev, i) =>
-            <div key={i} style={{ position: 'relative', marginBottom: i < TIMELINE.length - 1 ? 24 : 0 }}>
-                {/* Ponto */}
-                <div style={{
-                position: 'absolute', left: -24, top: 2,
-                width: 10, height: 10, borderRadius: '50%',
-                background: ev.current ? 'var(--color-success-500)' : 'var(--color-neutral-400)',
-                boxShadow: ev.current ? '0 0 0 4px var(--color-success-100)' : 'none',
-                zIndex: 1
-              }} />
-
-                {/* Card do evento atual */}
-                {ev.current ?
-              <div style={{
-                background: 'var(--color-success-50, #f0faf4)',
-                border: '1px solid var(--color-success-200)',
-                borderRadius: 8, padding: 12
-              }}>
-                    <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8, marginBottom: 4 }}>
-                      <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--color-success-700)', fontFamily: 'var(--font-family-primary)' }}>
-                        {ev.status}
-                      </span>
-                      <span style={{ fontSize: 11, color: 'var(--color-neutral-400)', whiteSpace: 'nowrap', fontFamily: 'var(--font-family-primary)' }}>
-                        {ev.date}
-                      </span>
-                    </div>
-                    <p style={{ margin: 0, fontSize: 12, color: 'var(--color-neutral-600)', fontFamily: 'var(--font-family-primary)', lineHeight: 1.5 }}>
-                      {ev.desc}
-                    </p>
-                  </div> :
-
-              <div>
-                    <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8, marginBottom: 2 }}>
-                      <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--color-neutral-700)', fontFamily: 'var(--font-family-primary)' }}>
-                        {ev.status}
-                      </span>
-                      <span style={{ fontSize: 11, color: 'var(--color-neutral-400)', whiteSpace: 'nowrap', fontFamily: 'var(--font-family-primary)' }}>
-                        {ev.date}
-                      </span>
-                    </div>
-                    <p style={{ margin: 0, fontSize: 12, color: 'var(--color-neutral-600)', fontFamily: 'var(--font-family-primary)', lineHeight: 1.5 }}>
-                      {ev.desc}
-                    </p>
-                  </div>
-              }
-              </div>
-            )}
-          </div>
-
-          {/* Divider */}
-          <div style={{ height: 1, background: 'var(--color-neutral-200)', margin: '24px 0' }} />
-
-          {/* Info condutor */}
-          <div style={{
-            background: 'var(--color-neutral-50, #fafafa)',
-            border: '1px solid var(--color-neutral-200)',
-            borderRadius: 8, padding: 12
-          }}>
-            <span style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: 'var(--color-neutral-500)', fontFamily: 'var(--font-family-primary)' }}>
-              Condutor responsável
-            </span>
-            <div style={{ marginTop: 8, display: 'flex', flexDirection: 'column', gap: 4 }}>
-              <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--color-neutral-900)', fontFamily: 'var(--font-family-primary)' }}>Rebeca Valetich</span>
-              <span style={{ fontSize: 12, color: 'var(--color-neutral-600)', fontFamily: 'var(--font-family-primary)' }}>CPF: 438.763.648-33</span>
-              <span style={{ fontSize: 12, color: 'var(--color-neutral-600)', fontFamily: 'var(--font-family-primary)' }}>Data da indicação: 16/04/2026</span>
-            </div>
-          </div>
+        {/* Footer */}
+        <div style={{
+          display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 16,
+          padding: 16,
+          borderTop: '1px solid var(--color-neutral-300)',
+          flexShrink: 0,
+          background: '#fff',
+        }}>
+          <button onClick={onClose} style={{
+            padding: '8px 16px', border: 'none', background: 'transparent',
+            fontSize: 14, fontWeight: 700, color: 'var(--color-neutral-900)',
+            cursor: 'pointer', fontFamily: 'var(--font-family-primary)', borderRadius: 8,
+            transition: 'background .12s',
+          }}
+            onMouseEnter={e => e.currentTarget.style.background = 'var(--color-neutral-200)'}
+            onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+          >
+            Fechar
+          </button>
+          <button onClick={() => { onClose(); onNavigateToDetail && onNavigateToDetail(row?.ait); }} style={{
+            padding: '8px 16px', border: 'none', borderRadius: 8,
+            background: 'var(--color-primary-500)',
+            fontSize: 14, fontWeight: 700, color: '#fff',
+            cursor: 'pointer', fontFamily: 'var(--font-family-primary)',
+            transition: 'opacity .12s',
+          }}
+            onMouseEnter={e => e.currentTarget.style.opacity = '0.85'}
+            onMouseLeave={e => e.currentTarget.style.opacity = '1'}
+          >
+            Ver mais detalhes
+          </button>
         </div>
       </div>
 
       <style>{`@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }`}</style>
-    </>);
+    </>
+  );
+}
 
+// ─── ModalPagamento ───────────────────────────────────────────────────────────
+function ModalPagamento({ row, onClose }) {
+  if (!row) return null;
+
+  useInfEffect(() => {
+    const handler = (e) => { if (e.key === 'Escape') onClose(); };
+    document.addEventListener('keydown', handler);
+    return () => document.removeEventListener('keydown', handler);
+  }, []);
+
+  const mock = typeof getMock === 'function' ? getMock(row.ait) : null;
+  const valor  = row.valor  || mock?.valor  || '—';
+  const placa  = row.placa  || mock?.placa  || '—';
+  const ait    = row.ait    || '—';
+  const tipo   = 'Multa';
+
+  const thStyle = {
+    background: 'var(--color-neutral-200)',
+    height: 30, padding: '0 8px',
+    display: 'flex', alignItems: 'center',
+    fontSize: 12, fontWeight: 700, textTransform: 'uppercase',
+    color: '#3a3940', whiteSpace: 'nowrap',
+    fontFamily: 'var(--font-family-primary)',
+  };
+  const tdStyle = {
+    background: 'var(--color-neutral-200)',
+    height: 37, padding: '0 8px',
+    display: 'flex', alignItems: 'center',
+    fontSize: 14, fontWeight: 400,
+    color: '#2f2e33', whiteSpace: 'nowrap',
+    fontFamily: 'var(--font-family-primary)',
+  };
+  const tdTotalStyle = { ...tdStyle, background: 'var(--color-neutral-300)', fontWeight: 700 };
+
+  const cols = [
+    { label: 'Tipo',  value: tipo,  totalValue: 'Total', align: 'left'  },
+    { label: 'Placa', value: placa, totalValue: '',       align: 'left'  },
+    { label: 'AIT',   value: ait,   totalValue: '',       align: 'left'  },
+    { label: 'Multa', value: valor, totalValue: '',       align: 'left'  },
+    { label: 'Valor', value: valor, totalValue: '',       align: 'left'  },
+    { label: 'Total', value: valor, totalValue: valor,    align: 'right' },
+  ];
+
+  return ReactDOM.createPortal(
+    <div onClick={onClose} style={{
+      position: 'fixed', inset: 0, zIndex: 10000,
+      background: 'rgba(0,0,0,0.45)',
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      animation: 'fadeInOverlay .18s ease',
+    }}>
+      <div onClick={(e) => e.stopPropagation()} style={{
+        background: '#fff', borderRadius: 8,
+        width: 640, maxWidth: 'calc(100vw - 32px)',
+        boxShadow: '2px 2px 4px rgba(0,0,0,0.08)',
+        fontFamily: 'var(--font-family-primary)',
+        animation: 'slideUpModal .2s cubic-bezier(.16,1,.3,1)',
+        display: 'flex', flexDirection: 'column', gap: 16, padding: 16,
+      }}>
+        {/* Header */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <span style={{ fontSize: 16, fontWeight: 700, color: 'var(--color-neutral-900)', fontFamily: 'var(--font-family-primary)' }}>
+            Revise as informações antes de concluir
+          </span>
+          <button onClick={onClose} style={{
+            width: 24, height: 24, border: 'none', background: 'transparent',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            cursor: 'pointer', color: 'var(--color-neutral-700)', borderRadius: 4,
+            transition: 'background .12s', flexShrink: 0,
+          }}
+            onMouseEnter={e => e.currentTarget.style.background = 'var(--color-neutral-200)'}
+            onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+            </svg>
+          </button>
+        </div>
+        {/* Revisão */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+          <p style={{ fontSize: 14, fontWeight: 400, color: 'var(--color-neutral-800)', lineHeight: 1.5, margin: 0, fontFamily: 'var(--font-family-primary)' }}>
+            Antes de avançar com o pagamento, confira se os dados estão corretos:
+          </p>
+          <div style={{ display: 'flex', borderRadius: 8, overflow: 'hidden', width: '100%' }}>
+            {cols.map((col, ci) => (
+              <div key={ci} style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+                <div style={{ ...thStyle, justifyContent: col.align === 'right' ? 'flex-end' : 'flex-start' }}>{col.label}</div>
+                <div style={{ ...tdStyle, justifyContent: col.align === 'right' ? 'flex-end' : 'flex-start' }}>{col.value}</div>
+                <div style={{ ...tdTotalStyle, justifyContent: col.align === 'right' ? 'flex-end' : 'flex-start' }}>{col.totalValue}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+        {/* Footer */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 16, paddingTop: 16 }}>
+          <button onClick={onClose} style={{
+            height: 40, padding: '0 16px', border: 'none', background: 'transparent',
+            borderRadius: 8, cursor: 'pointer',
+            fontSize: 14, fontWeight: 700, color: 'var(--color-neutral-900)',
+            fontFamily: 'var(--font-family-primary)', transition: 'background .12s',
+          }}
+            onMouseEnter={e => e.currentTarget.style.background = 'var(--color-neutral-200)'}
+            onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+          >Fechar</button>
+          <button onClick={onClose} style={{
+            height: 40, padding: '0 16px', border: 'none',
+            borderRadius: 8, cursor: 'pointer',
+            background: 'var(--color-primary-500)',
+            fontSize: 14, fontWeight: 700, color: '#fff',
+            fontFamily: 'var(--font-family-primary)', transition: 'opacity .12s',
+          }}
+            onMouseEnter={e => e.currentTarget.style.opacity = '0.85'}
+            onMouseLeave={e => e.currentTarget.style.opacity = '1'}
+          >Realizar pagamento</button>
+        </div>
+      </div>
+    </div>,
+    document.body
+  );
+}
+
+// ─── buildPaymentTimeline — gera timeline de pagamento por statusVariant ──────
+function buildPaymentTimeline(row) {
+  if (!row) return [];
+  const s = row.statusVariant || '';
+
+  function addD(str, n) {
+    if (!str) return str;
+    const [dd, mm, yy] = str.split('/').map(Number);
+    const dt = new Date(yy, mm - 1, dd + n);
+    return `${String(dt.getDate()).padStart(2,'0')}/${String(dt.getMonth()+1).padStart(2,'0')}/${dt.getFullYear()}`;
+  }
+
+  const anchor = row.vencimento || addD(row.dataInfracao || '01/01/2025', 90);
+  const dm7 = addD(anchor, -7);
+  const dm3 = addD(anchor, -3);
+  const d0  = anchor;
+
+  const bDispDate = { kind: 'date', date: dm7 };
+  const bDispCard = { kind: 'card', iconBg: 'orange', iconType: 'dollar',
+    title: 'Sua multa está disponível para pagamento',
+    description: 'Pague sua multa agora pela plataforma ou emita o boleto para pagamento externo.' };
+  const bAgDate   = { kind: 'date', date: dm3 };
+  const bAgCard   = { kind: 'card', iconBg: 'orange', iconType: 'clock',
+    title: 'Pagamento aguardando aprovação',
+    description: 'O pagamento está aguardando aprovação do responsável pelos pagamentos da sua empresa.' };
+  const bProcDate = { kind: 'date', date: d0 };
+  const bProcCard = { kind: 'card', iconBg: 'orange', iconType: 'clock',
+    title: 'Pagamento em processamento',
+    description: 'Pagamento em andamento. Em breve será confirmado.' };
+
+  if (s === 'aguardando_aprovacao') return [bAgDate, bAgCard, bDispDate, bDispCard];
+  if (s === 'processando') return [bProcDate, bProcCard, bAgDate, bAgCard, bDispDate, bDispCard];
+  if (s === 'pago') {
+    return [
+      { kind: 'date', date: d0 },
+      { kind: 'success', title: 'Multa paga com sucesso!',
+        description: 'O pagamento da multa foi identificado com sucesso.' },
+      bProcCard, bAgDate, bAgCard, bDispDate, bDispCard,
+    ];
+  }
+  if (s === 'recusado') {
+    return [
+      { kind: 'date', date: d0 },
+      { kind: 'card', iconBg: 'orange', iconType: 'clock',
+        title: 'Pagamento recusado',
+        description: 'O pagamento foi recusado. Entre em contato com o suporte.' },
+      bAgDate, bAgCard, bDispDate, bDispCard,
+    ];
+  }
+  if (s === 'vencido') {
+    return [
+      { kind: 'date', date: d0 },
+      { kind: 'alert', icon: 'info', title: 'Pagamento vencido',
+        subtitle: 'O prazo para pagamento desta multa expirou.' },
+      bDispDate, bDispCard,
+    ];
+  }
+  if (s === 'cancelado') {
+    return [
+      { kind: 'date', date: d0 },
+      { kind: 'alert', icon: 'info', title: 'Pagamento cancelado',
+        subtitle: 'O pagamento desta multa foi cancelado.' },
+      bDispDate, bDispCard,
+    ];
+  }
+  return [bDispDate, bDispCard];
 }
 
 // ─── DrawerPagamento ──────────────────────────────────────────────────────────
-function DrawerPagamento({ row, open, onClose }) {
+function DrawerPagamento({ row, open, onClose, onNavigateToDetail }) {
   useInfEffect(() => {
     if (!open) return;
-    const handler = (e) => {if (e.key === 'Escape') onClose();};
+    const handler = (e) => { if (e.key === 'Escape') onClose(); };
     document.addEventListener('keydown', handler);
     return () => document.removeEventListener('keydown', handler);
   }, [open]);
 
-  const TIMELINE = [
-  {
-    status: 'BOLETO DISPONÍVEL',
-    date: '04/04/2026',
-    desc: 'Boleto gerado pelo órgão autuador. Vencimento: 22/04/2026',
-    current: true
-  },
-  {
-    status: 'AGUARDANDO BOLETO',
-    date: '01/04/2026',
-    desc: 'Multa registrada. Aguardando geração do boleto pelo órgão.',
-    current: false
-  },
-  {
-    status: 'NOTIFICAÇÃO RECEBIDA',
-    date: '10/03/2026',
-    desc: 'Infração capturada. Valor original: R$ 195,23',
-    current: false
-  }];
+  // ── Ícones inline ──────────────────────────────────────────────────────────
+  const PwIcoClockOrange = () => (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--color-primary-600)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+    </svg>
+  );
+  const PwIcoDollar = () => (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--color-primary-600)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/>
+    </svg>
+  );
+  const PwIcoCheckFilled = () => (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="var(--color-success-600)">
+      <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 14.5l-4-4 1.41-1.41L10 13.67l6.59-6.59L18 8.5l-8 8z"/>
+    </svg>
+  );
+  const PwIcoInfoFilled = () => (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="var(--color-neutral-400)">
+      <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/>
+    </svg>
+  );
 
+  function getCardIcon(item) {
+    if (item.iconType === 'dollar') return <PwIcoDollar />;
+    return <PwIcoClockOrange />;
+  }
+
+  function PwTLRow({ dotKind, isFirst, isLast, children }) {
+    const dotSize  = dotKind === 'date' ? 10 : 6;
+    const dotColor = dotKind === 'date' ? 'var(--color-neutral-900)' : dotKind === 'success' ? 'var(--color-success-500)' : 'var(--color-neutral-400)';
+    const showDot  = dotKind !== 'none';
+    return (
+      <div style={{ display: 'flex', gap: 16, alignItems: 'stretch' }}>
+        <div style={{ width: 10, flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+          <div style={{ flex: 1, width: 1, background: isFirst ? 'transparent' : 'var(--color-neutral-300)', minHeight: showDot ? 6 : 0 }} />
+          {showDot && <div style={{ width: dotSize, height: dotSize, borderRadius: '50%', background: dotColor, flexShrink: 0, margin: dotKind === 'date' ? 0 : '2px 0' }} />}
+          <div style={{ flex: 1, width: 1, background: isLast ? 'transparent' : 'var(--color-neutral-300)', minHeight: showDot ? 6 : 0 }} />
+        </div>
+        <div style={{ flex: 1, minWidth: 0 }}>{children}</div>
+      </div>
+    );
+  }
+
+  function PwSpacer() {
+    return (
+      <div style={{ display: 'flex', gap: 16, height: 16 }}>
+        <div style={{ width: 10, flexShrink: 0, display: 'flex', justifyContent: 'center' }}>
+          <div style={{ width: 1, height: '100%', background: 'var(--color-neutral-300)' }} />
+        </div>
+        <div style={{ flex: 1 }} />
+      </div>
+    );
+  }
+
+  function renderTimeline(items) {
+    const result = [];
+    items.forEach((item, idx) => {
+      const isFirst = idx === 0;
+      const isLast  = idx === items.length - 1;
+      const needsSpacer = !isLast && item.kind !== 'date';
+
+      if (item.kind === 'date') {
+        result.push(
+          <PwTLRow key={`d${idx}`} dotKind="date" isFirst={isFirst} isLast={isLast}>
+            <div style={{ display: 'flex', alignItems: 'center', minHeight: 56 }}>
+              <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--color-neutral-900)', fontFamily: 'var(--font-family-primary)' }}>{item.date}</span>
+            </div>
+          </PwTLRow>
+        );
+        return;
+      }
+
+      if (item.kind === 'alert') {
+        result.push(
+          <PwTLRow key={`a${idx}`} dotKind="none" isFirst={isFirst} isLast={isLast}>
+            <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start', background: 'var(--color-neutral-200)', borderRadius: 12, padding: 12 }}>
+              <span style={{ flexShrink: 0, display: 'inline-flex', marginTop: 1 }}><PwIcoInfoFilled /></span>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--color-neutral-600)', fontFamily: 'var(--font-family-primary)', lineHeight: 1.5, display: 'block' }}>{item.title}</span>
+                {item.subtitle && <span style={{ fontSize: 14, fontWeight: 400, color: 'var(--color-neutral-600)', fontFamily: 'var(--font-family-primary)', lineHeight: 1.5, display: 'block', marginTop: 2 }}>{item.subtitle}</span>}
+              </div>
+            </div>
+          </PwTLRow>
+        );
+        if (needsSpacer) result.push(<PwSpacer key={`s${idx}`} />);
+        return;
+      }
+
+      if (item.kind === 'success') {
+        result.push(
+          <PwTLRow key={`sc${idx}`} dotKind="success" isFirst={isFirst} isLast={isLast}>
+            <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start', background: 'var(--color-success-100)', border: '1px solid var(--color-neutral-300)', borderRadius: 8, padding: 16 }}>
+              <span style={{ flexShrink: 0, display: 'inline-flex', marginTop: 2 }}><PwIcoCheckFilled /></span>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <span style={{ fontSize: 16, fontWeight: 700, color: 'var(--color-neutral-900)', fontFamily: 'var(--font-family-primary)', lineHeight: 1.5, display: 'block' }}>{item.title}</span>
+                {item.description && <span style={{ fontSize: 14, fontWeight: 400, color: 'var(--color-neutral-700)', fontFamily: 'var(--font-family-primary)', lineHeight: 1.5, display: 'block', marginTop: 2 }}>{item.description}</span>}
+              </div>
+            </div>
+          </PwTLRow>
+        );
+        if (needsSpacer) result.push(<PwSpacer key={`s${idx}`} />);
+        return;
+      }
+
+      if (item.kind === 'card') {
+        result.push(
+          <PwTLRow key={`c${idx}`} dotKind="card" isFirst={isFirst} isLast={isLast}>
+            <div style={{ background: 'var(--color-neutral-100)', border: '1px solid var(--color-neutral-300)', borderRadius: 8, padding: 16, display: 'flex', gap: 16, alignItems: 'center' }}>
+              <div style={{ width: 40, height: 40, borderRadius: 8, flexShrink: 0, background: 'var(--color-primary-200)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                {getCardIcon(item)}
+              </div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <span style={{ fontSize: 16, fontWeight: 700, color: 'var(--color-neutral-900)', fontFamily: 'var(--font-family-primary)', lineHeight: 1.5, display: 'block' }}>{item.title}</span>
+                {item.description && <span style={{ fontSize: 14, fontWeight: 400, color: 'var(--color-neutral-700)', fontFamily: 'var(--font-family-primary)', lineHeight: 1.5, display: 'block', marginTop: 2 }}>{item.description}</span>}
+              </div>
+            </div>
+          </PwTLRow>
+        );
+        if (needsSpacer) result.push(<PwSpacer key={`s${idx}`} />);
+      }
+    });
+    return result;
+  }
+
+  const items = row ? buildPaymentTimeline(row) : [];
 
   return (
     <>
-      {open &&
-      <div onClick={onClose} style={{
-        position: 'fixed', inset: 0, zIndex: 1000,
-        background: 'rgba(0,0,0,0.30)',
-        animation: 'fadeIn 200ms ease'
-      }} />
-      }
+      {/* Overlay */}
+      {open && (
+        <div onClick={onClose} style={{
+          position: 'fixed', inset: 0, zIndex: 1000,
+          background: 'rgba(0,0,0,0.30)',
+          animation: 'fadeIn 200ms ease',
+        }} />
+      )}
+
+      {/* Drawer */}
       <div style={{
-        position: 'fixed', top: 0, right: 0, height: '100vh', width: 440,
+        position: 'fixed', top: 0, right: 0, height: '100vh', width: 480,
         background: '#fff',
-        borderLeft: '1px solid var(--color-neutral-300)',
-        boxShadow: '-4px 0 16px rgba(0,0,0,0.10)',
+        borderRadius: '8px 0 0 8px',
+        boxShadow: '2px 4px 24px rgba(0,0,0,0.16)',
         zIndex: 1001,
         display: 'flex', flexDirection: 'column',
         transform: open ? 'translateX(0)' : 'translateX(100%)',
-        transition: 'transform 250ms ease'
+        transition: 'transform 260ms cubic-bezier(.16,1,.3,1)',
+        fontFamily: 'var(--font-family-primary)',
       }}>
         {/* Header */}
-        <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--color-neutral-200)', flexShrink: 0 }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
-            <span style={{ fontSize: 16, fontWeight: 700, color: 'var(--color-neutral-900)', fontFamily: 'var(--font-family-primary)' }}>
-              Situação do pagamento
-            </span>
-            <button onClick={onClose} style={{
-              width: 28, height: 28, border: 'none', background: 'transparent',
-              borderRadius: 6, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
-              color: 'var(--color-neutral-500)', transition: 'background .12s'
-            }}
-            onMouseEnter={(e) => e.currentTarget.style.background = 'var(--color-neutral-200)'}
-            onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}>
-              
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
-              </svg>
-            </button>
-          </div>
-          <span style={{ fontSize: 12, color: 'var(--color-neutral-500)', fontFamily: 'var(--font-family-primary)' }}>
-            AIT {row?.ait} · {row?.valor}
-          </span>
-        </div>
-
-        {/* Body */}
-        <div style={{ flex: 1, overflowY: 'auto', padding: '20px' }}>
-          {/* Timeline */}
-          <div style={{ position: 'relative', paddingLeft: 28 }}>
-            <div style={{
-              position: 'absolute', left: 4, top: 10, bottom: 10,
-              width: 2, background: 'var(--color-neutral-200)'
-            }} />
-            {TIMELINE.map((ev, i) =>
-            <div key={i} style={{ position: 'relative', marginBottom: i < TIMELINE.length - 1 ? 24 : 0 }}>
-                <div style={{
-                position: 'absolute', left: -24, top: 2,
-                width: 10, height: 10, borderRadius: '50%',
-                background: ev.current ? '#f9401b' : 'var(--color-neutral-400)',
-                boxShadow: ev.current ? '0 0 0 4px #fff3f0' : 'none',
-                zIndex: 1
-              }} />
-                {ev.current ?
-              <div style={{
-                background: '#fff3f0',
-                border: '1px solid rgba(249,64,27,0.3)',
-                borderRadius: 8, padding: 12
-              }}>
-                    <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8, marginBottom: 4 }}>
-                      <span style={{ fontSize: 13, fontWeight: 700, color: '#f9401b', fontFamily: 'var(--font-family-primary)' }}>
-                        {ev.status}
-                      </span>
-                      <span style={{ fontSize: 11, color: 'var(--color-neutral-400)', whiteSpace: 'nowrap', fontFamily: 'var(--font-family-primary)' }}>
-                        {ev.date}
-                      </span>
-                    </div>
-                    <p style={{ margin: '0 0 8px', fontSize: 12, color: 'var(--color-neutral-600)', fontFamily: 'var(--font-family-primary)', lineHeight: 1.5 }}>
-                      {ev.desc}
-                    </p>
-                    <button style={{
-                  display: 'inline-flex', alignItems: 'center', gap: 6,
-                  padding: '5px 12px', border: '1px solid var(--color-neutral-400)',
-                  borderRadius: 6, background: '#fff',
-                  fontSize: 12, fontWeight: 500, color: 'var(--color-neutral-700)',
-                  cursor: 'pointer', fontFamily: 'var(--font-family-primary)',
-                  transition: 'border-color .12s'
-                }}
-                onMouseEnter={(e) => e.currentTarget.style.borderColor = '#f9401b'}
-                onMouseLeave={(e) => e.currentTarget.style.borderColor = 'var(--color-neutral-400)'}>
-                  
-                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" />
-                      </svg>
-                      Baixar boleto
-                    </button>
-                  </div> :
-
-              <div>
-                    <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8, marginBottom: 2 }}>
-                      <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--color-neutral-700)', fontFamily: 'var(--font-family-primary)' }}>{ev.status}</span>
-                      <span style={{ fontSize: 11, color: 'var(--color-neutral-400)', whiteSpace: 'nowrap', fontFamily: 'var(--font-family-primary)' }}>{ev.date}</span>
-                    </div>
-                    <p style={{ margin: 0, fontSize: 12, color: 'var(--color-neutral-600)', fontFamily: 'var(--font-family-primary)', lineHeight: 1.5 }}>{ev.desc}</p>
-                  </div>
-              }
-              </div>
-            )}
-          </div>
-
-          {/* Divider */}
-          <div style={{ height: 1, background: 'var(--color-neutral-200)', margin: '24px 0' }} />
-
-          {/* Resumo de valores */}
-          <div style={{
-            background: 'var(--color-neutral-50, #fafafa)',
-            border: '1px solid var(--color-neutral-200)',
-            borderRadius: 8, padding: 12,
-            display: 'flex', flexDirection: 'column', gap: 10
-          }}>
-            {[
-            { label: 'Valor da multa', value: 'R$ 195,23', color: 'var(--color-neutral-900)' },
-            { label: 'Valor com desconto SNE 40%', value: 'R$ 117,14', color: 'var(--color-success-600)' },
-            { label: 'Vencimento do boleto', value: '22/04/2026', color: 'var(--color-error-600)' }].
-            map((item) =>
-            <div key={item.label} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <span style={{ fontSize: 11, color: 'var(--color-neutral-500)', fontFamily: 'var(--font-family-primary)', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 600 }}>
-                  {item.label}
-                </span>
-                <span style={{ fontSize: 14, fontWeight: 700, color: item.color, fontFamily: 'var(--font-family-primary)', fontVariantNumeric: 'tabular-nums' }}>
-                  {item.value}
-                </span>
-              </div>
-            )}
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 2 }}>
-              <span style={{ fontSize: 11, color: 'var(--color-neutral-500)', fontFamily: 'var(--font-family-primary)', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 600 }}>
-                Status
-              </span>
-              <span style={{
-                display: 'inline-flex', alignItems: 'center',
-                padding: '3px 10px', borderRadius: 20,
-                background: 'var(--color-success-100)', color: 'var(--color-success-700)',
-                fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.03em'
-              }}>Boleto disponível</span>
-            </div>
-          </div>
-        </div>
-
-        {/* Footer fixo */}
         <div style={{
-          padding: '16px 20px',
-          borderTop: '1px solid var(--color-neutral-200)',
-          background: '#fff', flexShrink: 0
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          padding: 16,
+          borderBottom: '1px solid var(--color-neutral-300)',
+          flexShrink: 0,
         }}>
-          <button style={{
-            width: '100%', height: 44,
-            background: '#f9401b', color: '#fff', border: 'none',
-            borderRadius: 8, fontSize: 15, fontWeight: 700,
-            fontFamily: 'var(--font-family-primary)',
-            cursor: 'pointer', transition: 'background .15s'
+          <span style={{ fontSize: 16, fontWeight: 700, color: 'var(--color-neutral-900)' }}>Pagamento</span>
+          <button onClick={onClose} style={{
+            width: 24, height: 24, border: 'none', background: 'transparent',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            cursor: 'pointer', color: 'var(--color-neutral-700)', borderRadius: 4,
+            transition: 'background .12s',
           }}
-          onMouseEnter={(e) => e.currentTarget.style.background = '#d9350f'}
-          onMouseLeave={(e) => e.currentTarget.style.background = '#f9401b'}>
-            
-            Pagar multa
+            onMouseEnter={e => e.currentTarget.style.background = 'var(--color-neutral-200)'}
+            onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+            </svg>
           </button>
         </div>
-      </div>
-    </>);
 
+        {/* Body scrollável */}
+        <div style={{ flex: 1, overflowY: 'auto', padding: 24 }}>
+          {items.length === 0 ? (
+            <div style={{ color: 'var(--color-neutral-500)', fontSize: 14, textAlign: 'center', paddingTop: 40 }}>
+              Nenhum histórico disponível.
+            </div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column' }}>{renderTimeline(items)}</div>
+          )}
+        </div>
+
+        {/* Footer */}
+        <div style={{
+          display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 16,
+          padding: 16,
+          borderTop: '1px solid var(--color-neutral-300)',
+          flexShrink: 0, background: '#fff',
+        }}>
+          <button onClick={onClose} style={{
+            padding: '8px 16px', border: 'none', background: 'transparent',
+            fontSize: 14, fontWeight: 700, color: 'var(--color-neutral-900)',
+            cursor: 'pointer', fontFamily: 'var(--font-family-primary)', borderRadius: 8,
+            transition: 'background .12s',
+          }}
+            onMouseEnter={e => e.currentTarget.style.background = 'var(--color-neutral-200)'}
+            onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+          >Fechar</button>
+          <button onClick={() => { onClose(); onNavigateToDetail && onNavigateToDetail(row?.ait); }} style={{
+            padding: '8px 16px', border: 'none', borderRadius: 8,
+            background: 'var(--color-primary-500)',
+            fontSize: 14, fontWeight: 700, color: '#fff',
+            cursor: 'pointer', fontFamily: 'var(--font-family-primary)',
+            transition: 'opacity .12s',
+          }}
+            onMouseEnter={e => e.currentTarget.style.opacity = '0.85'}
+            onMouseLeave={e => e.currentTarget.style.opacity = '1'}
+          >Ver mais detalhes</button>
+        </div>
+      </div>
+    </>
+  );
 }
 
 // ─── MultiAutocompleteSelect ─────────────────────────────────────────────────
@@ -3303,6 +4057,8 @@ function InfracoesScreen({ onNavigateToDetail }) {
   const [qTipoIndicacao, setQTipoIndicacao] = useInfState('');
   const [qPossuiBoleto, setQPossuiBoleto] = useInfState('');
   const [activeDrawer, setActiveDrawer] = useInfState(null); // { type: 'indicacao'|'pagamento', row }
+  const [indicaModal, setIndicaModal] = useInfState(null);   // row — abre ModalIndicacaoCondutor
+  const [pagamentoModal, setPagamentoModal] = useInfState(null); // row — abre ModalPagamento
 
   // Injeta paddingBottom no <main> para criar espaço cinza no scroll
   useInfEffect(() => {
@@ -3637,7 +4393,8 @@ function InfracoesScreen({ onNavigateToDetail }) {
             count={selectedRows.size}
             selectionType={selectionType}
             activeTab={activeTab}
-            onClose={() => setSelectedRows(new Set())} />
+            onClose={() => setSelectedRows(new Set())}
+            onSolicitarBoleto={() => setBoletoModal({ action: 'solicitar', count: selectedRows.size })} />
 
           {/* Selecionar todos — aparece quando ≥1 card selecionado */}
           {selectedRows.size > 0 && (
@@ -3707,9 +4464,9 @@ function InfracoesScreen({ onNavigateToDetail }) {
                     selected={selectedRows.has(row.id)}
                     onSelect={() => toggleRow(row.id)}
                     onCardClick={onNavigateToDetail}
-                    onOpenIndicacao={(r) => openDrawer('indicacao', r)}
-                    onOpenPagamento={(r) => openDrawer('pagamento', r)}
-                    onBadgeAction={(type, r) => setBadgeModal({ type, ait: r.ait })}
+                    onOpenIndicacao={(r) => r.statusVariant === 'indique_agora' ? setIndicaModal(r) : openDrawer('indicacao', r)}
+                    onOpenPagamento={(r) => r.statusVariant === 'em_aberto' ? setPagamentoModal(r) : openDrawer('pagamento', r)}
+                    onBadgeAction={(type, r) => type === 'indique_agora' ? setIndicaModal(r) : setPagamentoModal(r)}
                     onBoletoAction={handleBoletoAction} />
                 )}
               </div>
@@ -3769,12 +4526,14 @@ function InfracoesScreen({ onNavigateToDetail }) {
       <DrawerIndicacao
         row={activeDrawer?.row}
         open={activeDrawer?.type === 'indicacao'}
-        onClose={closeDrawer} />
-      
+        onClose={closeDrawer}
+        onNavigateToDetail={onNavigateToDetail} />
+
       <DrawerPagamento
         row={activeDrawer?.row}
         open={activeDrawer?.type === 'pagamento'}
-        onClose={closeDrawer} />
+        onClose={closeDrawer}
+        onNavigateToDetail={onNavigateToDetail} />
       
 
       
@@ -3932,13 +4691,15 @@ function InfracoesScreen({ onNavigateToDetail }) {
                   </div>
                   <div style={{ display: 'flex', gap: 32, paddingBottom: 16, borderBottom: '1px dashed var(--color-neutral-300)' }}>
                     <span style={{ fontSize: 14, color: '#0a0a0a', flex: 1 }}>
-                      {boletoModal.row?.placa} / {boletoModal.row?.ait}
+                      {boletoModal.count
+                        ? `${boletoModal.count} ${boletoModal.count === 1 ? 'item selecionado' : 'itens selecionados'}`
+                        : `${boletoModal.row?.placa} / ${boletoModal.row?.ait}`}
                     </span>
                     <span style={{ fontSize: 14, color: '#0a0a0a', flex: 1 }}>Disponível para solicitação</span>
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 0' }}>
                     <span style={{ fontSize: 14, fontWeight: 700, color: '#0a0a0a' }}>Boletos disponíveis para requisição</span>
-                    <span style={{ fontSize: 14, fontWeight: 700, color: '#0a0a0a' }}>1</span>
+                    <span style={{ fontSize: 14, fontWeight: 700, color: '#0a0a0a' }}>{boletoModal.count ?? 1}</span>
                   </div>
                 </div>
                 <div style={{ height: 1, background: 'var(--color-neutral-200)' }} />
@@ -3993,6 +4754,20 @@ function InfracoesScreen({ onNavigateToDetail }) {
           </div>
         </div>,
         document.body
+      )}
+
+      {/* ── Modal Indicação de Condutor ──────────────────────────────────── */}
+      {indicaModal && (
+        <ModalIndicacaoCondutor
+          row={indicaModal}
+          onClose={() => setIndicaModal(null)} />
+      )}
+
+      {/* ── Modal Pagamento ───────────────────────────────────────────────── */}
+      {pagamentoModal && (
+        <ModalPagamento
+          row={pagamentoModal}
+          onClose={() => setPagamentoModal(null)} />
       )}
 
     </div>);

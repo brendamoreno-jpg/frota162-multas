@@ -349,6 +349,11 @@ function disabledForSelection(selectionType, side) {
 // ─── Conteúdo dos dropdowns ───────────────────────────────────────────────────
 function CondutorItems({ activeTab, selectionType, notifDescontada, setNotifDescontada }) {
   const items = [];
+  // Vincular condutor — 3 tabs; disabled para np_only
+  if (showOn(activeTab, '3tabs')) {
+    const ds = disabledForSelection(selectionType, 'indicacao');
+    items.push({ icon: <BulkIconUser/>, label: 'Vincular condutor', ...ds });
+  }
   // Baixar formulário — Todas · Indicação
   if (showOn(activeTab, 'todas_indicacao')) {
     const ds = disabledForSelection(selectionType, 'indicacao');
@@ -374,27 +379,29 @@ function CondutorItems({ activeTab, selectionType, notifDescontada, setNotifDesc
   return items;
 }
 
-function BoletosItems({ activeTab, selectionType }) {
+function BoletosItems({ activeTab, selectionType, onSolicitarBoleto }) {
   const items = [];
 
   // Solicitar boleto 40% de desconto — Todas · Indicação
   if (showOn(activeTab, 'todas_indicacao')) {
     const ds = disabledForSelection(selectionType, 'indicacao');
-    items.push({ icon: <BulkIconFileText/>, label: 'Solicitar boleto 40% de desconto', ...ds });
+    items.push({ icon: <BulkIconFileText/>, label: 'Solicitar boleto 40% de desconto', ...ds,
+      onClick: onSolicitarBoleto,
+    });
   }
   // Solicitar pagamento em lote — Pagamento
   if (showOn(activeTab, 'pagamento')) {
     const ds = disabledForSelection(selectionType, 'pagamento');
     items.push({ icon: <BulkIconCreditCard/>, label: 'Solicitar pagamento em lote', ...ds });
   }
-  // Atualizar boleto sem desconto — Todas · Pagamento
+  // Atualizar boleto vencido — Todas · Pagamento (multas vencidas com boleto vencido)
   if (showOn(activeTab, 'todas_pagamento')) {
     const ds = disabledForSelection(selectionType, 'pagamento');
-    items.push({ icon: <BulkIconRefreshCcw/>, label: 'Atualizar boleto sem desconto', ...ds });
+    items.push({ icon: <BulkIconRefreshCcw/>, label: 'Atualizar boleto vencido', ...ds });
   }
-  // Atualizar boleto — 3 tabs
+  // Atualizar boleto 20% — 3 tabs (boletos vencidos de multas ainda não vencidas)
   if (showOn(activeTab, '3tabs')) {
-    items.push({ icon: <BulkIconRefreshCcw/>, label: 'Atualizar boleto' });
+    items.push({ icon: <BulkIconRefreshCcw/>, label: 'Atualizar boleto 20%' });
   }
   // Baixar boleto — 3 tabs
   if (showOn(activeTab, '3tabs')) {
@@ -412,9 +419,15 @@ function BoletosItems({ activeTab, selectionType }) {
   return items;
 }
 
-function MaisAcoesItems({ activeTab }) {
+function MaisAcoesItems({ activeTab, inativo, setInativo }) {
   const items = [];
   if (showOn(activeTab, '3tabs')) {
+    // Inativar / Reativar — toggle soft delete
+    items.push({
+      icon: inativo ? <BulkIconRotate/> : <BulkIconXCircle/>,
+      label: inativo ? 'Reativar' : 'Inativar',
+      onClick: () => setInativo((v) => !v),
+    });
     items.push({ icon: <BulkIconFolder/>, label: 'Baixar arquivos da multa' });
     items.push({
       icon: <BulkIconFileText/>, label: 'Protocolo de Multa',
@@ -425,18 +438,17 @@ function MaisAcoesItems({ activeTab }) {
 }
 
 // ─── Componente principal ─────────────────────────────────────────────────────
-function BulkActionBar({ count, selectionType = 'na_only', activeTab = 'todas', onClose }) {
+// Props:
+//   onSolicitarBoleto  {fn}  — abre modal "Solicitar boleto 40%" (passado por InfracoesScreen)
+function BulkActionBar({ count, selectionType = 'na_only', activeTab = 'todas', onClose, onSolicitarBoleto }) {
   const [notifDescontada, setNotifDescontada] = React.useState(null);
   const [inativo, setInativo] = React.useState(false); // toggle visual local: Inativar ↔ Reativar
 
   if (!count || count === 0) return null;
 
   const condutorItems = CondutorItems({ activeTab, selectionType, notifDescontada, setNotifDescontada });
-  const boletosItems  = BoletosItems({ activeTab, selectionType });
-  const maisItems     = MaisAcoesItems({ activeTab });
-
-  // Vincular condutor — 3 tabs. Em np_only desabilita com tooltip.
-  const vincularProps = disabledForSelection(selectionType, 'indicacao');
+  const boletosItems  = BoletosItems({ activeTab, selectionType, onSolicitarBoleto });
+  const maisItems     = MaisAcoesItems({ activeTab, inativo, setInativo });
 
   return (
     <div style={{
@@ -458,20 +470,12 @@ function BulkActionBar({ count, selectionType = 'na_only', activeTab = 'todas', 
         <span style={{ fontWeight: 700, marginLeft: 2 }}>{count}</span>
       </div>
 
-      {/* Direita — ações */}
+      {/* Direita — ações agrupadas */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
         <BulkBtn icon={<BulkIconEraser/>} label="Limpar seleção" onClick={onClose} />
 
-        {/* Ações soltas (frequentes — 3 tabs) */}
+        {/* Status de tratamento — standalone (alta frequência) */}
         <BulkStatusTratamento/>
-        <BulkBtn
-          icon={<BulkIconUser/>}
-          label="Vincular condutor"
-          {...vincularProps} />
-        <BulkBtn
-          icon={inativo ? <BulkIconRotate/> : <BulkIconXCircle/>}
-          label={inativo ? 'Reativar' : 'Inativar'}
-          onClick={() => setInativo((v) => !v)} />
 
         {/* Dropdowns agrupados */}
         {condutorItems.length > 0 && (
