@@ -1252,6 +1252,70 @@ body{margin:0;padding:0;font-family:var(--font-family-primary,Inter,sans-serif);
 #root{height:100vh;display:flex;flex-direction:column;overflow:hidden;}
 @keyframes fadeIn{from{opacity:0}to{opacity:1}}
 @keyframes shimmer{0%{background-position:-400px 0}100%{background-position:400px 0}}
+
+/* ── Onboarding ─────────────────────────────────────────────────────────── */
+.ob-banner {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 20px;
+  background: var(--color-success-100);
+  border-bottom: 1px solid var(--color-success-300);
+  font-family: var(--font-family-primary); font-size: 13px; color: var(--color-success-900);
+  flex-shrink: 0;
+  position: sticky; top: 0; z-index: 800;
+}
+.ob-banner__icon { font-size: 16px; flex-shrink: 0; }
+.ob-banner__text { flex: 1; font-weight: 500; }
+.ob-banner__btn {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 6px 14px; border-radius: 8px;
+  border: none; background: var(--color-primary-500);
+  font-family: var(--font-family-primary); font-size: 13px; font-weight: 600; color: #fff;
+  cursor: pointer; transition: background .15s;
+  flex-shrink: 0;
+}
+.ob-banner__btn:hover { background: var(--color-primary-600); }
+
+.ob-overlay {
+  position: fixed; inset: 0; z-index: 9900;
+  pointer-events: all;
+}
+.ob-tooltip {
+  position: fixed; z-index: 9950;
+  background: #fff; border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.18), 0 2px 8px rgba(0,0,0,0.08);
+  padding: 20px 22px 16px;
+  max-width: 320px; min-width: 260px;
+  max-height: calc(100vh - 80px); overflow-y: auto;
+  font-family: var(--font-family-primary);
+  animation: fadeIn .18s ease;
+}
+.ob-tooltip__counter {
+  display: inline-flex; align-items: center;
+  padding: 2px 8px; border-radius: 100px;
+  background: var(--color-neutral-200); color: var(--color-neutral-700);
+  font-size: 11px; font-weight: 600; margin-bottom: 10px;
+}
+.ob-tooltip__title {
+  font-size: 15px; font-weight: 700; color: var(--color-neutral-900);
+  margin: 0 0 6px;
+}
+.ob-tooltip__desc {
+  font-size: 13px; color: var(--color-neutral-700); line-height: 1.55;
+  margin: 0 0 16px;
+}
+.ob-tooltip__footer { display: flex; align-items: center; justify-content: flex-end; }
+.ob-tooltip__next {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 8px 18px; border-radius: 8px; border: none;
+  background: var(--color-primary-500); color: #fff;
+  font-family: var(--font-family-primary); font-size: 13px; font-weight: 600;
+  cursor: pointer; transition: background .15s;
+}
+.ob-tooltip__next:hover { background: var(--color-primary-600); }
+@keyframes ob-pulse {
+  0%,100% { box-shadow: 0 0 0 3px rgba(249,64,27,.35), 0 0 0 0 rgba(249,64,27,0); }
+  50%      { box-shadow: 0 0 0 3px rgba(249,64,27,.35), 0 0 0 7px rgba(249,64,27,0); }
+}
 </style>
 </head>
 <body>
@@ -2345,14 +2409,21 @@ function BulkStatusIcon({ icon, bg, color }) {
   );
 }
 
-function BulkStatusTratamento({ onSnackbar }) {
+function BulkStatusTratamento({ onSnackbar, onConfirmStatusTratamento }) {
   const [selected, setSelected] = React.useState('nao_tratada');
   const selectedOpt = BULK_STATUS_TRATAMENTO.find(o => o.id === selected) || BULK_STATUS_TRATAMENTO[0];
   const items = BULK_STATUS_TRATAMENTO.map((opt) => ({
     icon: <BulkStatusIcon icon={opt.icon} bg={opt.iconBg} color={opt.iconColor} />,
     label: opt.label,
     checked: selected === opt.id,
-    onClick: () => { setSelected(opt.id); onSnackbar && onSnackbar(`Status de tratamento atualizado para "${opt.label}"`); },
+    onClick: () => {
+      if (onConfirmStatusTratamento) {
+        onConfirmStatusTratamento(opt.id, opt.label);
+      } else {
+        setSelected(opt.id);
+        onSnackbar && onSnackbar(`Status de tratamento atualizado para "${opt.label}"`);
+      }
+    },
   }));
   return (
     <BulkDropdownBtn
@@ -2393,26 +2464,24 @@ function disabledForSelection(selectionType, side) {
 }
 
 // ─── Conteúdo dos dropdowns ───────────────────────────────────────────────────
-function CondutorItems({ activeTab, selectionType, notifDescontada, setNotifDescontada, onVincularCondutor, onSnackbar, onDownload }) {
+function CondutorItems({ activeTab, selectionType, notifDescontada, setNotifDescontada, onVincularCondutor, onSnackbar, onDownload, onDownloadFormulario, onImprimirNotificacao, onConfirmNotifDescontada }) {
   const items = [];
-  // Vincular condutor — 3 tabs; disabled para np_only
+  // Vincular condutor — 3 tabs (permitido em notificação e multa)
   if (showOn(activeTab, '3tabs')) {
-    const ds = disabledForSelection(selectionType, 'indicacao');
-    items.push({ icon: <BulkIconUser/>, label: 'Vincular condutor', ...ds,
-      onClick: ds.disabled ? undefined : onVincularCondutor,
+    items.push({ icon: <BulkIconUser/>, label: 'Vincular condutor',
+      onClick: onVincularCondutor,
     });
   }
-  // Baixar formulário — Todas · Indicação
-  if (showOn(activeTab, 'todas_indicacao')) {
-    const ds = disabledForSelection(selectionType, 'indicacao');
-    items.push({ icon: <BulkIconDownload/>, label: 'Baixar formulário', ...ds,
-      onClick: ds.disabled ? undefined : onDownload,
+  // Baixar formulário — 3 tabs (permitido em multas tb, mesmo que não utilize mais)
+  if (showOn(activeTab, '3tabs')) {
+    items.push({ icon: <BulkIconDownload/>, label: 'Baixar formulário',
+      onClick: onDownloadFormulario,
     });
   }
   // Imprimir notificação de desconto — 3 tabs
   if (showOn(activeTab, '3tabs')) {
     items.push({ icon: <BulkIconPrint/>, label: 'Imprimir notificação de desconto',
-      onClick: () => onSnackbar && onSnackbar('Impressão de notificação solicitada'),
+      onClick: onImprimirNotificacao,
     });
   }
   // Notificação descontada do condutor — 3 tabs (toggle Sim/Não)
@@ -2420,18 +2489,24 @@ function CondutorItems({ activeTab, selectionType, notifDescontada, setNotifDesc
     items.push({
       icon: <BulkIconCheck/>, label: 'Notificação descontada — Sim',
       checked: notifDescontada === 'sim',
-      onClick: () => { setNotifDescontada(notifDescontada === 'sim' ? null : 'sim'); onSnackbar && onSnackbar('Notificação descontada registrada como Sim'); },
+      onClick: () => {
+        if (onConfirmNotifDescontada) { onConfirmNotifDescontada('sim'); }
+        else { setNotifDescontada(notifDescontada === 'sim' ? null : 'sim'); onSnackbar && onSnackbar('Notificação descontada registrada como Sim'); }
+      },
     });
     items.push({
       icon: <BulkIconXCircle/>, label: 'Notificação descontada — Não',
       checked: notifDescontada === 'nao',
-      onClick: () => { setNotifDescontada(notifDescontada === 'nao' ? null : 'nao'); onSnackbar && onSnackbar('Notificação descontada registrada como Não'); },
+      onClick: () => {
+        if (onConfirmNotifDescontada) { onConfirmNotifDescontada('nao'); }
+        else { setNotifDescontada(notifDescontada === 'nao' ? null : 'nao'); onSnackbar && onSnackbar('Notificação descontada registrada como Não'); }
+      },
     });
   }
   return items;
 }
 
-function BoletosItems({ activeTab, selectionType, onSolicitarBoleto, onAtualizarBoleto, onPagamentoEmLote, onSnackbar, onDownload, onDownloadBoleto, hasElegivel40 }) {
+function BoletosItems({ activeTab, selectionType, onSolicitarBoleto, onAtualizarBoleto, onPagamentoEmLote, onSnackbar, onDownload, onDownloadBoleto, onImprimirBoleto, onStatusPago, hasElegivel40 }) {
   const items = [];
 
   // Solicitar boleto 40% de desconto — Todas · Indicação · Pagamento
@@ -2463,11 +2538,17 @@ function BoletosItems({ activeTab, selectionType, onSolicitarBoleto, onAtualizar
       onClick: onDownloadBoleto,
     });
   }
+  // Imprimir boleto — 3 tabs (abre modal com aviso de envio por e-mail + alerta de vencido)
+  if (showOn(activeTab, '3tabs')) {
+    items.push({ icon: <BulkIconPrint/>, label: 'Imprimir boleto',
+      onClick: onImprimirBoleto,
+    });
+  }
   // Alterar status para pago — Todas · Pagamento
   if (showOn(activeTab, 'todas_pagamento')) {
     const ds = disabledForSelection(selectionType, 'pagamento');
     items.push({ icon: <BulkIconCheck/>, label: 'Alterar status para pago', ...ds,
-      onClick: ds.disabled ? undefined : () => onSnackbar && onSnackbar('Status alterado para pago com sucesso'),
+      onClick: ds.disabled ? undefined : onStatusPago,
     });
   }
   return items;
@@ -2496,7 +2577,9 @@ function MaisAcoesItems({ activeTab, onExcluir, onReativar, onSnackbar, onDownlo
 // ─── Componente principal ─────────────────────────────────────────────────────
 function BulkActionBar({ count, selectionType = 'na_only', activeTab = 'todas', onClose,
   onSolicitarBoleto, onAtualizarBoleto, onPagamentoEmLote, onVincularCondutor,
-  onExcluir, onReativar, onSnackbar, onDownload, onDownloadBoleto, selectedRowsData = [] }) {
+  onExcluir, onReativar, onSnackbar, onDownload, onDownloadFormulario, onDownloadBoleto, onImprimirBoleto,
+  onImprimirNotificacao, onStatusPago, onConfirmNotifDescontada, onConfirmStatusTratamento,
+  selectedRowsData = [] }) {
   const [notifDescontada, setNotifDescontada] = React.useState(null);
 
   if (!count || count === 0) return null;
@@ -2507,8 +2590,8 @@ function BulkActionBar({ count, selectionType = 'na_only', activeTab = 'todas', 
   const hasPagavel = selectedRowsData.some(r => r.statusVariant === 'em_aberto');
   const showPagarBtn = selectedRowsData.length > 0; // mostra sempre que há seleção
 
-  const condutorItems = CondutorItems({ activeTab, selectionType, notifDescontada, setNotifDescontada, onVincularCondutor, onSnackbar, onDownload });
-  const boletosItems  = BoletosItems({ activeTab, selectionType, onSolicitarBoleto, onAtualizarBoleto, onPagamentoEmLote, onSnackbar, onDownload, onDownloadBoleto, hasElegivel40 });
+  const condutorItems = CondutorItems({ activeTab, selectionType, notifDescontada, setNotifDescontada, onVincularCondutor, onSnackbar, onDownload, onDownloadFormulario, onImprimirNotificacao, onConfirmNotifDescontada });
+  const boletosItems  = BoletosItems({ activeTab, selectionType, onSolicitarBoleto, onAtualizarBoleto, onPagamentoEmLote, onSnackbar, onDownload, onDownloadBoleto, onImprimirBoleto, onStatusPago, hasElegivel40 });
   const maisItems     = MaisAcoesItems({ activeTab, onExcluir, onReativar, onSnackbar, onDownload });
 
   return (
@@ -2536,7 +2619,7 @@ function BulkActionBar({ count, selectionType = 'na_only', activeTab = 'todas', 
         <BulkBtn icon={<BulkIconEraser/>} label="Limpar seleção" onClick={onClose} />
 
         {/* Status de tratamento — standalone (alta frequência) */}
-        <BulkStatusTratamento onSnackbar={onSnackbar} />
+        <BulkStatusTratamento onSnackbar={onSnackbar} onConfirmStatusTratamento={onConfirmStatusTratamento} />
 
         {/* Pagar todas — botão secundário standalone */}
         {showPagarBtn && (
@@ -7132,14 +7215,9 @@ function ModalPagamento({ row, rows, onClose, onConfirm }) {
 
           {/* Aviso: multas não-pagáveis */}
           {naoPagaveis.length > 0 && (
-            <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, padding: '10px 12px', borderRadius: 8, background: 'var(--color-warning-100)', border: '1px solid var(--color-warning-300)' }}>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" style={{ flexShrink: 0, marginTop: 1 }}>
-                <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" fill="#f59e0b"/><line x1="12" y1="9" x2="12" y2="13" stroke="#78350f" strokeWidth="2" strokeLinecap="round"/><circle cx="12" cy="17" r="1" fill="#78350f"/>
-              </svg>
-              <span style={{ fontSize: 13, fontWeight: 500, color: 'var(--color-warning-900, #644406)', lineHeight: 1.5, fontFamily: ff }}>
-                <strong>{naoPagaveis.length}</strong> {naoPagaveis.length !== 1 ? 'das multas selecionadas ainda são notificações' : 'da multas selecionadas ainda é notificação'} e {naoPagaveis.length !== 1 ? 'não podem' : 'não pode'} ser {naoPagaveis.length !== 1 ? 'pagas' : 'paga'} aqui — só aceitamos pagamento de penalidades. Para pagar {naoPagaveis.length !== 1 ? 'essas' : 'essa'} <strong>{naoPagaveis.length}</strong> {naoPagaveis.length !== 1 ? 'multas' : 'multa'}, baixe o boleto e realize o pagamento.
-              </span>
-            </div>
+            <InlineAlert variant="warning">
+              <strong>{naoPagaveis.length}</strong> {naoPagaveis.length !== 1 ? 'das multas selecionadas ainda são notificações' : 'da multas selecionadas ainda é notificação'} e {naoPagaveis.length !== 1 ? 'não podem' : 'não pode'} ser {naoPagaveis.length !== 1 ? 'pagas' : 'paga'} aqui — só aceitamos pagamento de penalidades. Para pagar {naoPagaveis.length !== 1 ? 'essas' : 'essa'} <strong>{naoPagaveis.length}</strong> {naoPagaveis.length !== 1 ? 'multas' : 'multa'}, baixe o boleto e realize o pagamento.
+            </InlineAlert>
           )}
 
           {/* Tabela */}
@@ -8715,8 +8793,88 @@ function ModalBulkConfirmReativar({ count, onClose, onConfirm }) {
 
 // ─── Bulk: Modal solicitar boleto 40% ────────────────────────────────────────
 // Elegíveis: apenas penalidades (tipo 'penalidade') com status 'em_aberto'.
+// Modal de confirmação — Notificação descontada Sim/Não
+function ModalBulkConfirmNotifDescontada({ valor, onClose, onConfirm }) {
+  const ff = 'var(--font-family-primary)';
+  const label = valor === 'sim' ? 'Sim' : 'Não';
+  return (
+    <_ModalBulkBase title="Notificação descontada do condutor" onClose={onClose} hideFooter>
+      <p style={{ margin: 0, fontSize: 14, color: 'var(--color-neutral-700)', lineHeight: '22px', fontFamily: ff }}>
+        Confirma que a notificação de desconto foi registrada como <strong>{label}</strong> para as multas selecionadas?
+      </p>
+      <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, fontFamily: ff }}>
+        <button onClick={onClose}
+          style={{ padding: '0 16px', height: 40, borderRadius: 8, border: '1.5px solid var(--color-neutral-300)', background: '#fff', fontFamily: ff, fontSize: 14, fontWeight: 600, color: 'var(--color-neutral-700)', cursor: 'pointer' }}>
+          Cancelar
+        </button>
+        <button onClick={onConfirm}
+          style={{ padding: '0 16px', height: 40, borderRadius: 8, border: 'none', background: 'var(--color-primary-500)', fontFamily: ff, fontSize: 14, fontWeight: 700, color: '#fff', cursor: 'pointer' }}
+          onMouseEnter={e => e.currentTarget.style.background = 'var(--color-primary-600)'}
+          onMouseLeave={e => e.currentTarget.style.background = 'var(--color-primary-500)'}>
+          Confirmar
+        </button>
+      </div>
+    </_ModalBulkBase>
+  );
+}
+
+// Modal de confirmação — Status de tratamento
+function ModalBulkConfirmStatusTratamento({ label, onClose, onConfirm }) {
+  const ff = 'var(--font-family-primary)';
+  return (
+    <_ModalBulkBase title="Status de tratamento" onClose={onClose} hideFooter>
+      <p style={{ margin: 0, fontSize: 14, color: 'var(--color-neutral-700)', lineHeight: '22px', fontFamily: ff }}>
+        Confirma a alteração do status de tratamento para <strong>{label}</strong> nas multas selecionadas?
+      </p>
+      <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, fontFamily: ff }}>
+        <button onClick={onClose}
+          style={{ padding: '0 16px', height: 40, borderRadius: 8, border: '1.5px solid var(--color-neutral-300)', background: '#fff', fontFamily: ff, fontSize: 14, fontWeight: 600, color: 'var(--color-neutral-700)', cursor: 'pointer' }}>
+          Cancelar
+        </button>
+        <button onClick={onConfirm}
+          style={{ padding: '0 16px', height: 40, borderRadius: 8, border: 'none', background: 'var(--color-primary-500)', fontFamily: ff, fontSize: 14, fontWeight: 700, color: '#fff', cursor: 'pointer' }}
+          onMouseEnter={e => e.currentTarget.style.background = 'var(--color-primary-600)'}
+          onMouseLeave={e => e.currentTarget.style.background = 'var(--color-primary-500)'}>
+          Confirmar
+        </button>
+      </div>
+    </_ModalBulkBase>
+  );
+}
+
+// ─── Inline alert reutilizável (warning / info) ───────────────────────────────
+function InlineAlert({ variant = 'warning', children }) {
+  const ff = 'var(--font-family-primary)';
+  const styles = {
+    warning: { bg: 'var(--color-warning-100)', border: 'var(--color-warning-300)', color: 'var(--color-warning-900)' },
+    info:    { bg: 'var(--color-information-100)', border: 'var(--color-information-300)', color: 'var(--color-information-900)' },
+  };
+  const s = styles[variant] || styles.warning;
+  const Icon = variant === 'warning'
+    ? () => (
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" style={{ flexShrink: 0, marginTop: 1 }}>
+          <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" fill="#f59e0b"/>
+          <line x1="12" y1="9" x2="12" y2="13" stroke="#78350f" strokeWidth="2" strokeLinecap="round"/>
+          <circle cx="12" cy="17" r="1" fill="#78350f"/>
+        </svg>
+      )
+    : () => (
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" style={{ flexShrink: 0, marginTop: 1 }}>
+          <circle cx="12" cy="12" r="10" fill="#60a5fa"/>
+          <line x1="12" y1="8" x2="12" y2="12" stroke="#1e3a5f" strokeWidth="2" strokeLinecap="round"/>
+          <circle cx="12" cy="16" r="1" fill="#1e3a5f"/>
+        </svg>
+      );
+  return (
+    <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, padding: '10px 12px', borderRadius: 8, background: s.bg, border: `1px solid ${s.border}`, fontFamily: ff }}>
+      <Icon />
+      <span style={{ fontSize: 13, fontWeight: 500, color: s.color, lineHeight: 1.55 }}>{children}</span>
+    </div>
+  );
+}
+
 // ─── Bulk: Modal compartilhado — estrutura base ───────────────────────────────
-function _ModalBulkBase({ title, children, onClose }) {
+function _ModalBulkBase({ title, children, onClose, hideFooter }) {
   useInfEffect(() => {
     const h = (e) => { if (e.key === 'Escape') onClose(); };
     document.addEventListener('keydown', h);
@@ -8743,40 +8901,66 @@ function _ModalBulkBase({ title, children, onClose }) {
           ><IcoX /></button>
         </div>
         {children}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 16, paddingTop: 0 }}>
-          <button onClick={onClose}
-            style={{ display: 'inline-flex', alignItems: 'center', padding: '0 16px', height: 40, borderRadius: 8, border: 'none', background: 'transparent', fontFamily: ff, fontSize: 14, fontWeight: 700, color: 'var(--color-neutral-900)', cursor: 'pointer' }}
-            onMouseEnter={e => e.currentTarget.style.background = 'var(--color-neutral-200)'}
-            onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
-          >Fechar</button>
-          <button onClick={onClose}
-            style={{ display: 'inline-flex', alignItems: 'center', padding: '0 16px', height: 40, borderRadius: 8, border: 'none', background: 'var(--color-primary-500)', fontFamily: ff, fontSize: 14, fontWeight: 700, color: '#fff', cursor: 'pointer' }}
-            onMouseEnter={e => e.currentTarget.style.background = 'var(--color-primary-600)'}
-            onMouseLeave={e => e.currentTarget.style.background = 'var(--color-primary-500)'}
-          >Entendido</button>
-        </div>
+        {!hideFooter && (
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 16, paddingTop: 0 }}>
+            <button onClick={onClose}
+              style={{ display: 'inline-flex', alignItems: 'center', padding: '0 16px', height: 40, borderRadius: 8, border: 'none', background: 'transparent', fontFamily: ff, fontSize: 14, fontWeight: 700, color: 'var(--color-neutral-900)', cursor: 'pointer' }}
+              onMouseEnter={e => e.currentTarget.style.background = 'var(--color-neutral-200)'}
+              onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+            >Fechar</button>
+            <button onClick={onClose}
+              style={{ display: 'inline-flex', alignItems: 'center', padding: '0 16px', height: 40, borderRadius: 8, border: 'none', background: 'var(--color-primary-500)', fontFamily: ff, fontSize: 14, fontWeight: 700, color: '#fff', cursor: 'pointer' }}
+              onMouseEnter={e => e.currentTarget.style.background = 'var(--color-primary-600)'}
+              onMouseLeave={e => e.currentTarget.style.background = 'var(--color-primary-500)'}
+            >Entendido</button>
+          </div>
+        )}
       </div>
     </div>,
     document.body
   );
 }
 
-// RQT-11 — Baixar boleto: modal com contagem de vencidos vs disponíveis
+// RQT-11 — Baixar boleto: modal com contagem de disponíveis vs sem boleto
 function ModalBulkBaixarBoleto({ rows, onClose }) {
   const ff = 'var(--font-family-primary)';
-  // Simula: rows com statusVariant 'vencida' têm boleto vencido; demais têm boleto disponível
-  const vencidos = rows.filter(r => r.statusVariant === 'vencida').length;
-  const disponiveis = rows.filter(r => ['em_aberto', 'vencida', 'indicacao_pendente', 'pago'].includes(r.statusVariant)).length;
+  // Têm boleto: em_aberto, vencida, pago, indicacao_pendente
+  const comBoleto = rows.filter(r => ['em_aberto', 'vencida', 'pago', 'indicacao_pendente'].includes(r.statusVariant)).length;
+  const semBoleto = rows.length - comBoleto;
+  const vencidos  = rows.filter(r => r.statusVariant === 'vencida').length;
   return (
     <_ModalBulkBase title="Baixar boleto" onClose={onClose}>
       <p style={{ margin: 0, fontSize: 14, color: 'var(--color-neutral-700)', lineHeight: '22px', fontFamily: ff }}>
-        Das <strong>{rows.length} multas</strong> selecionadas,{' '}
-        <strong>{vencidos} {vencidos !== 1 ? 'boletos estão vencidos' : 'boleto está vencido'}</strong> e{' '}
-        <strong>{disponiveis} {disponiveis !== 1 ? 'poderão ser enviados' : 'poderá ser enviado'}</strong> por e-mail.
+        Em instantes você receberá um <strong>e-mail</strong> com os boletos das multas selecionadas.
       </p>
+      {semBoleto > 0 && (
+        <InlineAlert variant="info">
+          <strong>{semBoleto} {semBoleto !== 1 ? 'multas não têm' : 'multa não tem'} boleto disponível</strong> e {semBoleto !== 1 ? 'serão ignoradas' : 'será ignorada'} no envio.
+        </InlineAlert>
+      )}
+      {vencidos > 0 && (
+        <InlineAlert variant="warning">
+          <strong>{vencidos} {vencidos !== 1 ? 'boletos estão vencidos' : 'boleto está vencido'}</strong>. Boletos vencidos podem não ser aceitos para pagamento — verifique antes de utilizar.
+        </InlineAlert>
+      )}
+    </_ModalBulkBase>
+  );
+}
+
+// Imprimir boleto — aviso de envio por e-mail + alerta de boleto vencido
+function ModalBulkImprimirBoleto({ rows, onClose }) {
+  const ff = 'var(--font-family-primary)';
+  const vencidos = (rows || []).filter(r => r.statusVariant === 'vencida' || r.statusVariant === 'indicacao_vencida').length;
+  return (
+    <_ModalBulkBase title="Imprimir boleto" onClose={onClose}>
       <p style={{ margin: 0, fontSize: 14, color: 'var(--color-neutral-700)', lineHeight: '22px', fontFamily: ff }}>
-        Seus arquivos estão sendo preparados. Em instantes você receberá um <strong>e-mail</strong> para baixá-los.
+        Em instantes você receberá um <strong>e-mail</strong> com os boletos das multas selecionadas.
       </p>
+      {vencidos > 0 && (
+        <InlineAlert variant="warning">
+          <strong>{vencidos} {vencidos !== 1 ? 'boletos estão vencidos' : 'boleto está vencido'}</strong> entre os selecionados. Boletos vencidos podem não ser aceitos para pagamento — verifique antes de utilizar.
+        </InlineAlert>
+      )}
     </_ModalBulkBase>
   );
 }
@@ -8784,7 +8968,7 @@ function ModalBulkBaixarBoleto({ rows, onClose }) {
 // RQT-13 — Baixar arquivos da multa: lista de tipos de anexo
 function ModalBulkDownload({ onClose }) {
   const ff = 'var(--font-family-primary)';
-  const arquivos = ['Espelho da Multa', 'Comprovante de pagamento', 'Termo do Condutor'];
+  const arquivos = ['Espelho da notificação', 'Espelho da penalidade', 'Comprovante de pagamento', 'Notificação de desconto'];
   const IcoFile = () => (
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>
@@ -8793,16 +8977,70 @@ function ModalBulkDownload({ onClose }) {
   return (
     <_ModalBulkBase title="Baixar arquivos da multa" onClose={onClose}>
       <p style={{ margin: 0, fontSize: 14, color: 'var(--color-neutral-700)', lineHeight: '22px', fontFamily: ff }}>
-        Seus arquivos estão sendo preparados. Em instantes você receberá um <strong>e-mail</strong> para baixá-los.
+        Em instantes você receberá um <strong>e-mail</strong> com os arquivos.
       </p>
       <div style={{ background: 'var(--color-neutral-100)', borderRadius: 8, padding: '10px 14px', display: 'flex', flexDirection: 'column', gap: 2 }}>
-        <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--color-neutral-500)', textTransform: 'uppercase', letterSpacing: '0.06em', fontFamily: ff, marginBottom: 6 }}>Arquivos incluídos</span>
+        <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--color-neutral-500)', textTransform: 'uppercase', letterSpacing: '0.06em', fontFamily: ff, marginBottom: 6 }}>Arquivos enviados, caso estejam anexados na multa</span>
         {arquivos.map(nome => (
           <div key={nome} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '4px 0', color: 'var(--color-neutral-700)', fontFamily: ff, fontSize: 13 }}>
             <span style={{ color: 'var(--color-neutral-500)' }}><IcoFile /></span>
             {nome}
           </div>
         ))}
+      </div>
+    </_ModalBulkBase>
+  );
+}
+
+// Baixar formulário de indicação
+function ModalBulkBaixarFormulario({ onClose }) {
+  const ff = 'var(--font-family-primary)';
+  return (
+    <_ModalBulkBase title="Baixar formulário de indicação" onClose={onClose}>
+      <p style={{ margin: 0, fontSize: 14, color: 'var(--color-neutral-700)', lineHeight: '22px', fontFamily: ff }}>
+        Em instantes você receberá um <strong>e-mail</strong> com o formulário de indicação de condutor.
+      </p>
+      <p style={{ margin: 0, fontSize: 13, color: 'var(--color-neutral-500)', lineHeight: '20px', fontFamily: ff }}>
+        Se a multa já tiver um condutor vinculado, o formulário virá preenchido com os dados cadastrados.
+      </p>
+    </_ModalBulkBase>
+  );
+}
+
+// Imprimir notificação de desconto — sucesso
+function ModalBulkImprimirNotificacao({ onClose }) {
+  const ff = 'var(--font-family-primary)';
+  return (
+    <_ModalBulkBase title="Imprimir notificação de desconto" onClose={onClose}>
+      <p style={{ margin: 0, fontSize: 14, color: 'var(--color-neutral-700)', lineHeight: '22px', fontFamily: ff }}>
+        Em instantes você receberá um <strong>e-mail</strong> com as notificações de desconto das multas selecionadas.
+      </p>
+    </_ModalBulkBase>
+  );
+}
+
+// Alterar status para pago — confirmação
+function ModalBulkConfirmStatusPago({ count, onClose, onConfirm }) {
+  const ff = 'var(--font-family-primary)';
+  return (
+    <_ModalBulkBase title="Alterar status para pago" onClose={onClose} hideFooter>
+      <p style={{ margin: 0, fontSize: 14, color: 'var(--color-neutral-700)', lineHeight: '22px', fontFamily: ff }}>
+        Você está marcando <strong>{count} {count !== 1 ? 'multas' : 'multa'}</strong> como pagas. Essa ação atualiza o status no sistema.
+      </p>
+      <InlineAlert variant="warning">
+        Certifique-se de que o pagamento foi efetivamente realizado antes de confirmar.
+      </InlineAlert>
+      <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, fontFamily: ff, marginTop: 4 }}>
+        <button onClick={onClose}
+          style={{ padding: '0 16px', height: 40, borderRadius: 8, border: '1.5px solid var(--color-neutral-300)', background: '#fff', fontFamily: ff, fontSize: 14, fontWeight: 600, color: 'var(--color-neutral-700)', cursor: 'pointer' }}>
+          Cancelar
+        </button>
+        <button onClick={onConfirm}
+          style={{ padding: '0 16px', height: 40, borderRadius: 8, border: 'none', background: 'var(--color-primary-500)', fontFamily: ff, fontSize: 14, fontWeight: 700, color: '#fff', cursor: 'pointer' }}
+          onMouseEnter={e => e.currentTarget.style.background = 'var(--color-primary-600)'}
+          onMouseLeave={e => e.currentTarget.style.background = 'var(--color-primary-500)'}>
+          Confirmar
+        </button>
       </div>
     </_ModalBulkBase>
   );
@@ -8927,6 +9165,189 @@ function ModalBulkBoleto40({ rows, onClose, onConfirm }) {
   );
 }
 
+// ─── Onboarding ───────────────────────────────────────────────────────────────
+
+const OB_STEPS = [
+  {
+    key: null, // welcome — sem destaque de elemento
+    title: 'Bem-vindo ao novo módulo de multas',
+    desc: 'Notificações e penalidades agora estão reunidas em uma única tela. Aqui você acompanha toda a jornada da multa — da indicação de condutor ao pagamento.',
+  },
+  {
+    key: 'tabs',
+    title: 'Duas jornadas, duas abas',
+    desc: 'Use as abas para alternar entre os dois fluxos principais. Em Indicação de condutor, você encontra todas as multas em notificação — prontas para indicar ou em processo de indicação. Em Pagamento, todas as multas em penalidade que podem ser pagas dentro ou fora da plataforma.',
+  },
+  {
+    key: 'filters',
+    title: 'Filtros que mudam com a jornada',
+    desc: 'Cada aba tem seus próprios filtros e subfiltros. Ao trocar de aba, eles se atualizam automaticamente para corresponder ao fluxo selecionado.',
+  },
+  {
+    key: 'advanced',
+    title: 'Mais controle na busca',
+    desc: 'Combine múltiplos critérios ao mesmo tempo para encontrar exatamente o que precisa.',
+  },
+  {
+    key: 'stripe',
+    title: 'Identifique o tipo de multa de relance',
+    desc: 'A barra colorida à esquerda de cada card indica o tipo da multa: azul para notificação, laranja para penalidade.',
+  },
+  {
+    key: 'statustag',
+    title: 'O estado da multa sempre visível',
+    desc: 'As tags mostram o estado atual de cada multa — em aberto, vencida, paga, em processamento — tanto na jornada de indicação quanto na de pagamento.',
+  },
+  {
+    key: 'bulk',
+    title: 'Aja em várias multas de uma vez',
+    desc: 'Selecione múltiplas multas e aplique ações em lote: indique condutor ou gere boleto para todas de uma só vez.',
+  },
+];
+
+function OnboardingBanner({ onStart }) {
+  return (
+    <div className="ob-banner">
+      <span className="ob-banner__icon">✨</span>
+      <span className="ob-banner__text">Essa tela mudou. Conheça as novidades antes de continuar.</span>
+      <button className="ob-banner__btn" onClick={onStart}>
+        Ver o que mudou →
+      </button>
+    </div>
+  );
+}
+
+function OnboardingOverlay({ step, refs, onNext, total }) {
+  const [rect, setRect] = useInfState(null);
+  const [tooltipStyle, setTooltipStyle] = useInfState({});
+  const [opacity, setOpacity] = useInfState(1);
+  const PAD = 8;
+
+  useInfEffect(() => {
+    setOpacity(0);
+    const key = OB_STEPS[step].key;
+    if (!key) {
+      // welcome step — sem elemento para destacar
+      const t = setTimeout(() => { setRect({ welcome: true }); setOpacity(1); }, 180);
+      return () => clearTimeout(t);
+    }
+    const el = refs[key]?.current;
+    if (!el) return;
+    el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    const t = setTimeout(() => {
+      const r = el.getBoundingClientRect();
+      setRect({ top: r.top, left: r.left, width: r.width, height: r.height });
+      setOpacity(1);
+    }, 380);
+    return () => clearTimeout(t);
+  }, [step]);
+
+  useInfEffect(() => {
+    if (!rect || rect.welcome) return;
+    // Tooltip always anchored to bottom-left, clear of the viewport bottom edge
+    const VP_W = document.documentElement.clientWidth;
+    const TW = 320;
+    const left = Math.min(Math.max(16, rect.left), VP_W - TW - 16);
+    setTooltipStyle({ bottom: 24, left, top: 'auto' });
+  }, [rect]);
+
+  if (!rect) return ReactDOM.createPortal(
+    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.72)', zIndex: 9910, opacity: 0, transition: 'opacity 0.18s ease' }} />,
+    document.body
+  );
+
+  const isWelcome = !!rect.welcome;
+  const overlayColor = 'rgba(0,0,0,0.72)';
+  const isLast = step === total - 1;
+
+  // welcome: overlay completo, tooltip centrado
+  const transitionStyle = { transition: 'opacity 0.18s ease', opacity };
+
+  if (isWelcome) {
+    const welcomeTooltip = {
+      position: 'fixed',
+      top: '50%', left: '50%',
+      transform: 'translate(-50%, -50%)',
+      zIndex: 9950,
+      background: '#fff', borderRadius: 16,
+      boxShadow: '0 16px 48px rgba(0,0,0,0.22)',
+      padding: '32px 32px 24px',
+      maxWidth: 420, width: '90vw',
+      fontFamily: 'var(--font-family-primary)',
+      ...transitionStyle,
+    };
+    return ReactDOM.createPortal(
+      <>
+        <div style={{ position: 'fixed', inset: 0, background: overlayColor, zIndex: 9910, pointerEvents: 'all', ...transitionStyle }} />
+        <div style={welcomeTooltip}>
+          <div className="ob-tooltip__counter" style={{ marginBottom: 12 }}>{step + 1} / {total}</div>
+          <p className="ob-tooltip__title" style={{ fontSize: 18, marginBottom: 10 }}>{OB_STEPS[step].title}</p>
+          <p className="ob-tooltip__desc">{OB_STEPS[step].desc}</p>
+          <div className="ob-tooltip__footer">
+            <button className="ob-tooltip__next" onClick={onNext}>Próximo →</button>
+          </div>
+        </div>
+      </>,
+      document.body
+    );
+  }
+
+  const hTop    = rect.top    - PAD;
+  const hLeft   = rect.left   - PAD;
+  const hWidth  = rect.width  + PAD * 2;
+  const hHeight = rect.height + PAD * 2;
+
+  const overlayPieces = [
+    { top: 0,            left: 0,            width: '100vw',                          height: hTop },
+    { top: hTop+hHeight, left: 0,            width: '100vw',                          height: '100vh' },
+    { top: hTop,         left: 0,            width: hLeft,                            height: hHeight },
+    { top: hTop,         left: hLeft+hWidth, width: `calc(100vw - ${hLeft+hWidth}px)`,height: hHeight },
+  ];
+
+  // bloqueador transparente sobre o elemento destacado — impede cliques na área recortada
+  const clickBlockerStyle = {
+    position: 'fixed',
+    top: hTop, left: hLeft, width: hWidth, height: hHeight,
+    zIndex: 9915,
+    pointerEvents: 'all',
+    cursor: 'default',
+    background: 'transparent',
+  };
+
+  const ringStyle = {
+    position: 'fixed',
+    top: hTop, left: hLeft, width: hWidth, height: hHeight,
+    borderRadius: 10,
+    border: '2.5px solid rgba(249,64,27,0.9)',
+    boxShadow: '0 0 0 3px rgba(249,64,27,0.25), 0 0 20px rgba(249,64,27,0.35)',
+    animation: 'ob-pulse 1.8s ease-in-out infinite',
+    pointerEvents: 'none',
+    zIndex: 9920,
+  };
+
+  return ReactDOM.createPortal(
+    <>
+      {overlayPieces.map((s, i) => (
+        <div key={i} style={{ position: 'fixed', ...s, background: overlayColor, zIndex: 9910, pointerEvents: 'all', ...transitionStyle }} />
+      ))}
+      <div style={{ ...clickBlockerStyle, ...transitionStyle }} />
+      <div style={{ ...ringStyle, ...transitionStyle }} />
+      {/* tooltip */}
+      <div className="ob-tooltip" style={{ ...tooltipStyle, ...transitionStyle }}>
+        <div className="ob-tooltip__counter">{step + 1} / {total}</div>
+        <p className="ob-tooltip__title">{OB_STEPS[step].title}</p>
+        <p className="ob-tooltip__desc">{OB_STEPS[step].desc}</p>
+        <div className="ob-tooltip__footer">
+          <button className="ob-tooltip__next" onClick={onNext}>
+            {isLast ? 'Entendido ✓' : 'Próximo →'}
+          </button>
+        </div>
+      </div>
+    </>,
+    document.body
+  );
+}
+
 // ─── Tela principal ───────────────────────────────────────────────────────────
 function InfracoesScreen({ onNavigateToDetail, onNovaMulta }) {
   const [activeTab, setActiveTab] = useInfState('todas');
@@ -8960,10 +9381,37 @@ function InfracoesScreen({ onNavigateToDetail, onNovaMulta }) {
   const [bulkExcluirOpen, setBulkExcluirOpen] = useInfState(false);
   const [bulkReativarOpen, setBulkReativarOpen] = useInfState(false);
   const [bulkSuccessSnack, setBulkSuccessSnack] = useInfState(null); // string | null
+  const [bulkFormularioOpen, setBulkFormularioOpen] = useInfState(false);
+  const [bulkImprimirNotifOpen, setBulkImprimirNotifOpen] = useInfState(false);
+  const [bulkStatusPagoOpen, setBulkStatusPagoOpen] = useInfState(false);
   const [bulkDownloadOpen, setBulkDownloadOpen] = useInfState(false);
   const [bulkDownloadBoletoOpen, setBulkDownloadBoletoOpen] = useInfState(false);
+  const [bulkImprimirBoletoOpen, setBulkImprimirBoletoOpen] = useInfState(false);
+  const [bulkNotifDescontadaOpen, setBulkNotifDescontadaOpen] = useInfState(false);
+  const [pendingNotifDescontada, setPendingNotifDescontada] = useInfState(null); // 'sim' | 'nao'
+  const [bulkStatusTratamentoOpen, setBulkStatusTratamentoOpen] = useInfState(false);
+  const [pendingStatusTratamento, setPendingStatusTratamento] = useInfState(null); // { id, label }
   const [currentPage, setCurrentPage] = useInfState(1);
   const PAGE_SIZE = 10;
+
+  // ── Onboarding state ──
+  const [obActive, setObActive] = useInfState(false);
+  const [obStep, setObStep] = useInfState(0);
+  const [obDone, setObDone] = useInfState(false);
+  const obRefs = {
+    tabs:     useInfRef(null),
+    filters:  useInfRef(null),
+    chips:    useInfRef(null),
+    advanced: useInfRef(null),
+    stripe:   useInfRef(null),
+    statustag:useInfRef(null),
+    bulk:     useInfRef(null),
+  };
+  function startOnboarding() { setObStep(0); setObActive(true); }
+  function nextObStep() {
+    if (obStep < OB_STEPS.length - 1) { setObStep(obStep + 1); }
+    else { setObActive(false); setObDone(true); }
+  }
 
   useInfEffect(() => { setCurrentPage(1); }, [activeTab, activeChip]);
 
@@ -9075,6 +9523,18 @@ function InfracoesScreen({ onNavigateToDetail, onNovaMulta }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', flex: 1, background: 'var(--color-neutral-200)' }}>
 
+      {/* ── ONBOARDING BANNER ───────────────────────────────────────────── */}
+      {!obDone && <OnboardingBanner onStart={startOnboarding} />}
+
+      {/* ── ONBOARDING OVERLAY ──────────────────────────────────────────── */}
+      {obActive && (
+        <OnboardingOverlay
+          step={obStep}
+          refs={obRefs}
+          onNext={nextObStep}
+          total={OB_STEPS.length} />
+      )}
+
       {/* ── PAGE HEADER ─────────────────────────────────────────────────── */}
       <div style={{
         background: '#fafafa',
@@ -9146,7 +9606,7 @@ function InfracoesScreen({ onNavigateToDetail, onNovaMulta }) {
           padding: '8px 0 0',
           gap: 16,
         }}>
-          <div style={{
+          <div ref={obRefs.tabs} style={{
             display: 'flex', flexDirection: 'row', alignItems: 'center',
             background: 'var(--color-neutral-100)',
             borderRadius: 8,
@@ -9157,30 +9617,50 @@ function InfracoesScreen({ onNavigateToDetail, onNovaMulta }) {
           {tabs.map((tab) => {
             const active = activeTab === tab.id;
             const hovered = hoveredTab === tab.id && !active;
+            const TAB_TOOLTIPS = {
+              indicacao: 'Todas as multas em notificação — prontas para indicar ou em processo de indicação.',
+              pagamento: 'Todas as multas em penalidade que podem ser pagas dentro ou fora da plataforma.',
+            };
+            const tabTooltipText = TAB_TOOLTIPS[tab.id];
             return (
-              <button
-                key={tab.id}
-                onClick={() => handleTabChange(tab.id)}
+              <div key={tab.id} style={{ flex: '1 0 0', position: 'relative' }}
                 onMouseEnter={() => setHoveredTab(tab.id)}
-                onMouseLeave={() => setHoveredTab(null)}
-                style={{
-                  display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-                  gap: 4,
-                  flex: '1 0 0',
-                  padding: '8px 16px',
-                  border: active ? '1px solid #f9401b' : '1px solid transparent',
-                  borderRadius: 8,
-                  background: active ? '#feece8' : hovered ? 'var(--color-primary-100)' : '#fff',
-                  fontFamily: 'var(--font-family-primary)',
-                  fontSize: 14,
-                  fontWeight: 700,
-                  color: active ? '#0a0a0a' : hovered ? '#0a0a0a' : '#7f8184',
-                  cursor: 'pointer', whiteSpace: 'nowrap',
-                  transition: 'background .15s, color .15s, border-color .15s',
-                  outline: 'none',
-                }}>
-                {tab.label}
-              </button>);
+                onMouseLeave={() => setHoveredTab(null)}>
+                <button
+                  onClick={() => handleTabChange(tab.id)}
+                  style={{
+                    display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                    gap: 4, width: '100%',
+                    padding: '8px 16px',
+                    border: active ? '1px solid #f9401b' : '1px solid transparent',
+                    borderRadius: 8,
+                    background: active ? '#feece8' : hovered ? 'var(--color-primary-100)' : '#fff',
+                    fontFamily: 'var(--font-family-primary)',
+                    fontSize: 14, fontWeight: 700,
+                    color: active ? '#0a0a0a' : hovered ? '#0a0a0a' : '#7f8184',
+                    cursor: 'pointer', whiteSpace: 'nowrap',
+                    transition: 'background .15s, color .15s, border-color .15s',
+                    outline: 'none',
+                  }}>
+                  {tab.label}
+                </button>
+                {hovered && tabTooltipText && (
+                  <div style={{
+                    position: 'absolute', top: 'calc(100% + 8px)', left: '50%',
+                    transform: 'translateX(-50%)',
+                    background: '#1c1c1e', color: '#fff',
+                    fontSize: 12, fontWeight: 400, lineHeight: 1.55,
+                    fontFamily: 'var(--font-family-primary)',
+                    padding: '8px 12px', borderRadius: 8,
+                    whiteSpace: 'normal', width: 220,
+                    boxShadow: '0 4px 12px rgba(0,0,0,0.18)',
+                    zIndex: 500, pointerEvents: 'none',
+                    animation: 'fadeIn .12s ease',
+                  }}>
+                    {tabTooltipText}
+                  </div>
+                )}
+              </div>);
           })}
           </div>
         </div>
@@ -9195,6 +9675,9 @@ function InfracoesScreen({ onNavigateToDetail, onNovaMulta }) {
         border: 'none',
         boxShadow: 'none'
       }}>
+
+      {/* ── FILTER BAR + CHIPS (wrapper para onboarding highlight) ─────── */}
+      <div ref={obRefs.filters}>
 
       {/* ── FILTER BAR ──────────────────────────────────────────────────── */}
       {isLoading ? <SkeletonFilterBar /> : (
@@ -9219,7 +9702,7 @@ function InfracoesScreen({ onNavigateToDetail, onNovaMulta }) {
             minWidth={activeTab === 'indicacao' ? 0 : 200} />
           <DateFilter activeTab={activeTab} flex={activeTab === 'indicacao' ? '1 1 0' : undefined} />
           {activeTab !== 'indicacao' && (
-            <button onClick={() => setDrawerOpen(true)} style={{
+            <button ref={obRefs.advanced} onClick={() => setDrawerOpen(true)} style={{
                 display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6,
                 flex: '1 1 0', height: 38, padding: '0 16px',
                 border: '1px solid var(--color-neutral-400)', borderRadius: 8,
@@ -9305,6 +9788,8 @@ function InfracoesScreen({ onNavigateToDetail, onNovaMulta }) {
       </div>
       )}
 
+      </div>{/* fim wrapper filtros + chips */}
+
       {/* ── CARD LIST / KANBAN ──────────────────────────────────────────── */}
       <div style={{ background: '#fff', padding: '8px 24px 24px' }}>
         {isLoading
@@ -9334,8 +9819,14 @@ function InfracoesScreen({ onNavigateToDetail, onNovaMulta }) {
             onExcluir={() => setBulkExcluirOpen(true)}
             onReativar={() => setBulkReativarOpen(true)}
             onSnackbar={(msg) => window.showBulkSnackbar && window.showBulkSnackbar(msg)}
+            onDownloadFormulario={() => setBulkFormularioOpen(true)}
+            onImprimirNotificacao={() => setBulkImprimirNotifOpen(true)}
+            onStatusPago={() => setBulkStatusPagoOpen(true)}
             onDownload={() => setBulkDownloadOpen(true)}
             onDownloadBoleto={() => setBulkDownloadBoletoOpen(true)}
+            onImprimirBoleto={() => setBulkImprimirBoletoOpen(true)}
+            onConfirmNotifDescontada={(val) => { setPendingNotifDescontada(val); setBulkNotifDescontadaOpen(true); }}
+            onConfirmStatusTratamento={(id, label) => { setPendingStatusTratamento({ id, label }); setBulkStatusTratamentoOpen(true); }}
             selectedRowsData={selectedRowsData} />
 
           {/* Selecionar todos — aparece quando ≥1 card selecionado */}
@@ -9368,18 +9859,34 @@ function InfracoesScreen({ onNavigateToDetail, onNovaMulta }) {
           )}
 
           {/* Cards — filtrados pelo chip ativo, ordenados e paginados */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-            {pagedRows.map(row =>
-              <InfracaoCard
-                key={row.id}
-                row={row}
-                selected={selectedRows.has(row.id)}
-                onSelect={() => toggleRow(row.id)}
-                onCardClick={onNavigateToDetail}
-                onOpenIndicacao={(r) => r.statusVariant === 'indique_agora' ? setIndicaModal(r) : openDrawer('indicacao', r)}
-                onOpenPagamento={(r) => r.statusVariant === 'em_aberto' ? setPagamentoModal(r) : openDrawer('pagamento', r)}
-                onBadgeAction={(type, r) => type === 'indique_agora' ? setIndicaModal(r) : setPagamentoModal(r)}
-                onBoletoAction={handleBoletoAction} />
+          <div ref={obRefs.bulk} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            {pagedRows.map((row, idx) => idx === 0
+              ? (
+                <div key={row.id} ref={obRefs.stripe} style={{ position: 'relative' }}>
+                  <div ref={obRefs.statustag} style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, pointerEvents: 'none' }} />
+                  <InfracaoCard
+                    row={row}
+                    selected={selectedRows.has(row.id)}
+                    onSelect={() => toggleRow(row.id)}
+                    onCardClick={onNavigateToDetail}
+                    onOpenIndicacao={(r) => r.statusVariant === 'indique_agora' ? setIndicaModal(r) : openDrawer('indicacao', r)}
+                    onOpenPagamento={(r) => r.statusVariant === 'em_aberto' ? setPagamentoModal(r) : openDrawer('pagamento', r)}
+                    onBadgeAction={(type, r) => type === 'indique_agora' ? setIndicaModal(r) : setPagamentoModal(r)}
+                    onBoletoAction={handleBoletoAction} />
+                </div>
+              )
+              : (
+                <InfracaoCard
+                  key={row.id}
+                  row={row}
+                  selected={selectedRows.has(row.id)}
+                  onSelect={() => toggleRow(row.id)}
+                  onCardClick={onNavigateToDetail}
+                  onOpenIndicacao={(r) => r.statusVariant === 'indique_agora' ? setIndicaModal(r) : openDrawer('indicacao', r)}
+                  onOpenPagamento={(r) => r.statusVariant === 'em_aberto' ? setPagamentoModal(r) : openDrawer('pagamento', r)}
+                  onBadgeAction={(type, r) => type === 'indique_agora' ? setIndicaModal(r) : setPagamentoModal(r)}
+                  onBoletoAction={handleBoletoAction} />
+              )
             )}
           </div>
         </AITListState>
@@ -9740,12 +10247,57 @@ function InfracoesScreen({ onNavigateToDetail, onNovaMulta }) {
           }} />
       )}
 
+      {bulkFormularioOpen && (
+        <ModalBulkBaixarFormulario onClose={() => setBulkFormularioOpen(false)} />
+      )}
+
+      {bulkImprimirNotifOpen && (
+        <ModalBulkImprimirNotificacao onClose={() => setBulkImprimirNotifOpen(false)} />
+      )}
+
+      {bulkStatusPagoOpen && (
+        <ModalBulkConfirmStatusPago
+          count={selectedRows.size}
+          onClose={() => setBulkStatusPagoOpen(false)}
+          onConfirm={() => {
+            setBulkStatusPagoOpen(false);
+            window.showBulkSnackbar && window.showBulkSnackbar('Status alterado para pago com sucesso');
+          }} />
+      )}
+
       {bulkDownloadOpen && (
         <ModalBulkDownload onClose={() => setBulkDownloadOpen(false)} />
       )}
 
       {bulkDownloadBoletoOpen && (
         <ModalBulkBaixarBoleto rows={selectedRowsData} onClose={() => setBulkDownloadBoletoOpen(false)} />
+      )}
+
+      {bulkImprimirBoletoOpen && (
+        <ModalBulkImprimirBoleto rows={selectedRowsData} onClose={() => setBulkImprimirBoletoOpen(false)} />
+      )}
+
+      {bulkNotifDescontadaOpen && pendingNotifDescontada && (
+        <ModalBulkConfirmNotifDescontada
+          valor={pendingNotifDescontada}
+          onClose={() => { setBulkNotifDescontadaOpen(false); setPendingNotifDescontada(null); }}
+          onConfirm={() => {
+            setBulkNotifDescontadaOpen(false);
+            const label = pendingNotifDescontada === 'sim' ? 'Sim' : 'Não';
+            window.showBulkSnackbar && window.showBulkSnackbar(`Notificação descontada registrada como ${label}`);
+            setPendingNotifDescontada(null);
+          }} />
+      )}
+
+      {bulkStatusTratamentoOpen && pendingStatusTratamento && (
+        <ModalBulkConfirmStatusTratamento
+          label={pendingStatusTratamento.label}
+          onClose={() => { setBulkStatusTratamentoOpen(false); setPendingStatusTratamento(null); }}
+          onConfirm={() => {
+            setBulkStatusTratamentoOpen(false);
+            window.showBulkSnackbar && window.showBulkSnackbar(`Status de tratamento atualizado para "${pendingStatusTratamento.label}"`);
+            setPendingStatusTratamento(null);
+          }} />
       )}
 
     </div>);
