@@ -4507,7 +4507,9 @@ const PENAL_STATUS = {
                           indLabel: 'CONDUTOR INDICADO',            indBg: 'var(--color-success-200)', indColor: 'var(--color-success-800)', showBarcode: false },
   recusado:             { label: 'PAGAMENTO RECUSADO',             bg: 'var(--color-error-200)',       color: 'var(--color-error-800)',        tooltip: 'Verifique o motivo nos detalhes da infração.',
                           indLabel: 'CONDUTOR INDICADO',            indBg: 'var(--color-success-200)', indColor: 'var(--color-success-800)', showBarcode: false },
-  vencido:              { showBarcode: false },
+  vencido:              { label: 'MULTA VENCIDA',                  bg: 'var(--color-neutral-300)',     color: 'var(--color-neutral-800)',      tooltip: 'O prazo de pagamento desta multa expirou.', showBarcode: false },
+  vencida:              { label: 'MULTA VENCIDA',                  bg: 'var(--color-neutral-300)',     color: 'var(--color-neutral-800)',      tooltip: 'O prazo de pagamento desta multa expirou.', showBarcode: false },
+  cancelada:            { label: 'CANCELADA',                      bg: 'var(--color-error-200)',       color: 'var(--color-error-800)',        tooltip: 'Esta multa foi cancelada.', showBarcode: false },
   cancelado:            { label: 'CANCELADO',                      bg: 'var(--color-neutral-300)',     color: 'var(--color-neutral-800)',
                           showBarcode: false },
   pago:                 { label: 'PAGO',                           bg: 'var(--color-success-200)',     color: 'var(--color-success-800)',      tooltip: 'Multa paga com sucesso.',
@@ -5576,7 +5578,8 @@ const MOCK_ROWS = [
     ait: 'SP11000006', codigoInfracao: '73662', nomeInfracao: 'Avançar Sinal Vermelho',
     placa: 'QRS8U45', dataInfracao: '05/04/2025', orgao: 'DETRAN-GO',
     valor: 'R$ 293,47', prazoIndicacao: 20, prazoDataFormatada: '15/07/2025', prazoOrgaoData: '30/07/2025',
-    vencimento: '26/08/2026', condutor: null, temAnexo: false, lowOpacity: false,
+    vencimento: '26/08/2026', condutor: { nome: 'Marcos Vinicius Souza' }, temAnexo: false, lowOpacity: false,
+    indLabel: 'CONDUTOR INDICADO', indBg: 'var(--color-success-200)', indColor: 'var(--color-success-800)',
   },
   {
     id: 27, tipo: 'penalidade', statusVariant: 'pago', boletoTag: null,
@@ -5638,7 +5641,8 @@ const MOCK_ROWS = [
     ait: 'SP04127850', codigoInfracao: '73662', nomeInfracao: 'Avançar Sinal Vermelho',
     placa: 'DTX0021', dataInfracao: '10/03/2025', orgao: 'DETRAN-SP',
     valor: 'R$ 293,47', prazoIndicacao: 10, prazoDataFormatada: '05/07/2025', prazoOrgaoData: '20/07/2025',
-    vencimento: '15/08/2025', condutor: null, temAnexo: false, lowOpacity: false,
+    vencimento: '15/08/2025', condutor: { nome: 'Carlos Eduardo Silva' }, temAnexo: false, lowOpacity: false,
+    indLabel: 'CONDUTOR INDICADO', indBg: 'var(--color-success-200)', indColor: 'var(--color-success-800)',
   },
   {
     id: 36, tipo: 'penalidade', statusVariant: 'aguardando_aprovacao', boletoTag: null,
@@ -5652,7 +5656,7 @@ const MOCK_ROWS = [
     ait: 'BA09234899', codigoInfracao: '68400', nomeInfracao: 'Excesso de Velocidade',
     placa: 'RTY3K21', dataInfracao: '18/01/2025', orgao: 'PRF-BA',
     valor: 'R$ 130,16', prazoIndicacao: 15, prazoDataFormatada: '10/07/2025', prazoOrgaoData: '25/07/2025',
-    vencimento: '01/09/2025', condutor: null, temAnexo: false, lowOpacity: false,
+    vencimento: '01/09/2025', condutor: { nome: 'Ricardo Alves Santos' }, temAnexo: false, lowOpacity: false,
   },
   {
     id: 38, tipo: 'penalidade', statusVariant: 'pago', boletoTag: null,
@@ -5666,7 +5670,7 @@ const MOCK_ROWS = [
     ait: 'RS07721900', codigoInfracao: '73662', nomeInfracao: 'Avançar Sinal Vermelho',
     placa: 'NLX8012', dataInfracao: '17/03/2025', orgao: 'DETRAN-RS',
     valor: 'R$ 293,47', prazoIndicacao: 30, prazoDataFormatada: '25/07/2025', prazoOrgaoData: '09/08/2025',
-    vencimento: '30/09/2025', condutor: null, temAnexo: false, lowOpacity: false,
+    vencimento: '30/09/2025', condutor: { nome: 'André Luiz Costa' }, temAnexo: false, lowOpacity: false,
   },
   {
     id: 40, tipo: 'penalidade', statusVariant: 'vencida', boletoTag: null,
@@ -5711,21 +5715,21 @@ const MOCK_ROWS = [
     ait: 'BA09234900', codigoInfracao: '60503', nomeInfracao: 'Transitar na Contramão',
     placa: 'RTY3K22', dataInfracao: '18/01/2025', orgao: 'PRF-BA',
     valor: 'R$ 130,16', prazoIndicacao: 14, prazoDataFormatada: '09/07/2025', prazoOrgaoData: '24/07/2025',
-    vencimento: '01/09/2025', condutor: null, temAnexo: false, lowOpacity: false,
+    vencimento: '01/09/2025', condutor: { nome: 'Thiago Ramos Oliveira' }, temAnexo: false, lowOpacity: false,
   },
   {
     id: 47, tipo: 'penalidade', statusVariant: 'processando', boletoTag: null,
     ait: 'SC01182800', codigoInfracao: '73662', nomeInfracao: 'Avançar Sinal Vermelho',
     placa: 'GHT4P02', dataInfracao: '14/03/2025', orgao: 'DETRAN-SC',
     valor: 'R$ 293,47', prazoIndicacao: 40, prazoDataFormatada: '04/08/2025', prazoOrgaoData: '19/08/2025',
-    vencimento: '10/09/2025', condutor: null, temAnexo: false, lowOpacity: false,
+    vencimento: '10/09/2025', condutor: { nome: 'Patrícia Moreira Gomes' }, temAnexo: false, lowOpacity: false,
   },
   {
     id: 48, tipo: 'penalidade', statusVariant: 'processando', boletoTag: null,
     ait: 'RS07721901', codigoInfracao: '60501', nomeInfracao: 'Usar Celular ao Volante',
     placa: 'NLX8013', dataInfracao: '17/03/2025', orgao: 'DETRAN-RS',
     valor: 'R$ 195,23', prazoIndicacao: 18, prazoDataFormatada: '13/07/2025', prazoOrgaoData: '28/07/2025',
-    vencimento: '30/09/2025', condutor: null, temAnexo: false, lowOpacity: false,
+    vencimento: '30/09/2025', condutor: { nome: 'Juliana Cristina Pereira' }, temAnexo: false, lowOpacity: false,
   },
   // ── Penalidades — pago (3× aqui + id 27 nas jornadas = 4× total) ───────
   {
@@ -5755,22 +5759,24 @@ const MOCK_ROWS = [
     ait: 'PR02445088', codigoInfracao: '60502', nomeInfracao: 'Estacionar em Local Proibido',
     placa: 'JBA8G44', dataInfracao: '04/02/2025', orgao: 'DETRAN-PR',
     valor: 'R$ 195,23', prazoIndicacao: 32, prazoDataFormatada: '27/07/2025', prazoOrgaoData: '11/08/2025',
-    vencimento: '12/08/2025', condutor: null, temAnexo: false, lowOpacity: false,
+    vencimento: '12/08/2025', condutor: { nome: 'Sandro Figueiredo Lima' }, temAnexo: false, lowOpacity: false,
   },
   {
     id: 52, tipo: 'penalidade', statusVariant: 'recusado', boletoTag: null,
     ait: 'PR11000024', codigoInfracao: '73662', nomeInfracao: 'Avançar Sinal Vermelho',
     placa: 'YZA1U89', dataInfracao: '01/12/2024', orgao: 'DETRAN-PR',
     valor: 'R$ 130,16', prazoIndicacao: 9, prazoDataFormatada: '04/07/2025', prazoOrgaoData: '19/07/2025',
-    vencimento: '01/03/2025', condutor: null, temAnexo: false, lowOpacity: false,
+    vencimento: '01/03/2025', condutor: { nome: 'Beatriz Carvalho Nunes' }, temAnexo: false, lowOpacity: false,
   },
   // ── Penalidades — vencida (1×) ──────────────────────────────────────────
   {
-    id: 53, tipo: 'penalidade', statusVariant: 'vencida', boletoTag: null,
+    id: 53, tipo: 'penalidade', statusVariant: 'cancelada', boletoTag: null,
     ait: 'CE08772000', codigoInfracao: '60501', nomeInfracao: 'Usar Celular ao Volante',
     placa: 'WQA3B90', dataInfracao: '10/11/2024', orgao: 'DETRAN-CE',
     valor: 'R$ 293,47', prazoIndicacao: 45, prazoDataFormatada: '09/08/2025', prazoOrgaoData: '24/08/2025',
     vencimento: '10/02/2025', condutor: null, temAnexo: false, lowOpacity: false,
+    tipoCancelamento: 'Cancelamento de Auto de Infração', dataCancelamento: '15/01/2025',
+    origemCancelamento: '—', ufCancelamento: 'CE',
   },
   // ── Penalidades — boleto_40_disponivel (1×) ─────────────────────────────
   {
@@ -10381,6 +10387,7 @@ window.ModalConfirmarBoleto = ModalConfirmarBoleto;
 window.ModalBoletoSucesso = ModalBoletoSucesso;
 window.NOTIF_STATUS = NOTIF_STATUS;
 window.PENAL_STATUS = PENAL_STATUS;
+window.BOLETO_TAGS = BOLETO_TAGS;
 window.ModalIndicacaoCondutor = ModalIndicacaoCondutor;
 window.ModalPagamento = ModalPagamento;
 window.ModalAtualizarBoleto = ModalAtualizarBoleto;
@@ -11605,21 +11612,45 @@ function buildDetailFromRow(row) {
     prazoIndicacaoPlataforma: row.prazoDataFormatada || null,
     prazoIndicacaoPlataformaDias: typeof row.prazoIndicacao === 'number' && row.prazoIndicacao > 5 ? row.prazoIndicacao - 5 : null,
     indLabel: row.indLabel, indBg: row.indBg, indColor: row.indColor,
+    tipoCancelamento: row.tipoCancelamento || null,
+    dataCancelamento: row.dataCancelamento || null,
+    origemCancelamento: row.origemCancelamento || null,
+    ufCancelamento: row.ufCancelamento || null,
+  };
+}
+
+// Mescla campos de status do row da listagem no mock de detalhe,
+// garantindo que o detalhe reflita exatamente o que o card mostra.
+function mergeRowStatus(mock, aitId) {
+  const row = (window.MOCK_ROWS || []).find(function(r) { return r.ait === aitId; });
+  if (!row) return mock;
+  const condutor = row.condutor
+    ? (typeof row.condutor === 'string' ? { nome: row.condutor } : row.condutor)
+    : mock.condutor || null;
+  return {
+    ...mock,
+    statusVariant: row.statusVariant,
+    boletoTag: row.boletoTag || mock.boletoTag || null,
+    indLabel: row.indLabel || mock.indLabel || null,
+    indBg:    row.indBg    || mock.indBg    || null,
+    indColor: row.indColor || mock.indColor || null,
+    tipo: row.tipo === 'penalidade' ? 'Penalidade' : 'Notificação',
+    condutor,
   };
 }
 
 function getMock(aitId) {
-  if (aitId === 'SP11000001') return MOCK_INDIQUE_SP01;
-  if (aitId === 'SP04127850') return MOCK_PAGUE_SP850;
-  if (aitId === 'SP04127832') return MOCK_SNE;
-  if (aitId === 'RJ01985432' || aitId === 'SP11000002') return MOCK_FORMULARIO;
-  if (aitId === 'SP11000003') return MOCK_PAGAMENTO;
-  if (aitId === 'SP11000004') return MOCK_INDIQUE_AGORA;
-  if (aitId === 'SP11000005') return MOCK_CPF_CONCLUIDO;
-  if (aitId === 'SP11000006') return MOCK_FORMULARIO_CONCLUIDO;
-  if (aitId === 'SP11000007') return MOCK_PAGUE_AGORA;
-  if (aitId === 'SP11000008') return MOCK_VENCIDO;
-  if (aitId === 'SP11000009') return MOCK_PAGO_COMPLETO;
+  if (aitId === 'SP11000001') return mergeRowStatus(MOCK_INDIQUE_SP01, aitId);
+  if (aitId === 'SP04127850') return mergeRowStatus(MOCK_PAGUE_SP850, aitId);
+  if (aitId === 'SP04127832') return mergeRowStatus(MOCK_SNE, aitId);
+  if (aitId === 'RJ01985432' || aitId === 'SP11000002') return mergeRowStatus(MOCK_FORMULARIO, aitId);
+  if (aitId === 'SP11000003') return mergeRowStatus(MOCK_PAGAMENTO, aitId);
+  if (aitId === 'SP11000004') return mergeRowStatus(MOCK_INDIQUE_AGORA, aitId);
+  if (aitId === 'SP11000005') return mergeRowStatus(MOCK_CPF_CONCLUIDO, aitId);
+  if (aitId === 'SP11000006') return mergeRowStatus(MOCK_FORMULARIO_CONCLUIDO, aitId);
+  if (aitId === 'SP11000007') return mergeRowStatus(MOCK_PAGUE_AGORA, aitId);
+  if (aitId === 'SP11000008') return mergeRowStatus(MOCK_VENCIDO, aitId);
+  if (aitId === 'SP11000009') return mergeRowStatus(MOCK_PAGO_COMPLETO, aitId);
   // Fallback robusto: deriva do row da listagem para o detalhe refletir o card.
   const row = (window.MOCK_ROWS || []).find(function(r) { return r.ait === aitId; });
   if (row) return buildDetailFromRow(row);
@@ -12689,6 +12720,13 @@ function AITDetail({ aitId, onBack, onEditarPerfil }) {
 
   const _allStatus = { ...(window.NOTIF_STATUS || {}), ...(window.PENAL_STATUS || {}) };
   const status = _allStatus[ait.statusVariant] || { label: 'EM PROCESSAMENTO', bg: 'var(--color-neutral-200)', color: 'var(--color-neutral-700)', tooltip: '' };
+  const _penalCfg = (window.PENAL_STATUS || {})[ait.statusVariant] || {};
+  const _notifCfg = (window.NOTIF_STATUS || {})[ait.statusVariant] || {};
+  const _boletoCfg = ait.boletoTag ? (window.BOLETO_TAGS || {})[ait.boletoTag] : null;
+  const _isNotificacao = ait.tipo === 'Notificação' || ait.tipo === 'notificacao';
+  const _indLabel = ait.indLabel || (!_isNotificacao ? _penalCfg.indLabel : null);
+  const _indBg    = ait.indBg    || (!_isNotificacao ? _penalCfg.indBg    : null);
+  const _indColor = ait.indColor || (!_isNotificacao ? _penalCfg.indColor  : null);
 
   const tabs = [
     { id: 'acompanhe',   label: 'Histórico' },
@@ -12727,7 +12765,7 @@ function AITDetail({ aitId, onBack, onEditarPerfil }) {
           {/* Page header: título + ações */}
           <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 16 }}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
                 <h1 style={{ margin: 0, fontSize: 24, fontWeight: 700, color: 'var(--color-neutral-900)', lineHeight: 1.5 }}>
                   AIT {aitId}
                 </h1>
@@ -12739,6 +12777,16 @@ function AITDetail({ aitId, onBack, onEditarPerfil }) {
                     undefined
                   }
                 />}
+                {/* Badge de boleto — espelha o card (notificações) */}
+                {_isNotificacao && _boletoCfg && (
+                  <DetStatusPill bg='#e8f3ea' color='#405c44' label='BOLETO DISPONÍVEL' tooltip='Baixe o boleto para realizar o pagamento da notificação.' />
+                )}
+                {/* Badge de indicação — espelha o card (penalidades) */}
+                {!_isNotificacao && _indLabel && (
+                  <span style={{ opacity: 0.7 }}>
+                    <DetStatusPill bg={_indBg} color={_indColor} label={_indLabel} />
+                  </span>
+                )}
               </div>
               <p style={{ margin: 0, fontSize: 16, fontWeight: 400, color: 'var(--color-neutral-800)', lineHeight: 1.5 }}>
                 {ait.codigoInfracao} — {ait.nomeInfracao}
@@ -13145,6 +13193,31 @@ function AITDetail({ aitId, onBack, onEditarPerfil }) {
                 </InfoRow>
               </div>
 
+              {/* ── Bloco 3b: Cancelamento (só quando cancelada/cancelado) ── */}
+              {(ait.statusVariant === 'cancelada' || ait.statusVariant === 'cancelado') && (
+                <div style={{
+                  background: 'var(--color-neutral-100)', border: '1px solid var(--color-neutral-300)',
+                  borderRadius: 8, padding: 32, display: 'flex', flexDirection: 'column', gap: 20,
+                }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                      <div style={{ width: 40, height: 40, borderRadius: 6, flexShrink: 0, background: 'var(--color-secondary-200)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--color-secondary-600)' }}><DetIconDoc /></div>
+                      <span style={{ fontSize: 18, fontWeight: 700, color: 'var(--color-neutral-900)' }}>Cancelamento</span>
+                    </div>
+                    <div style={{ height: 1, background: 'var(--color-neutral-300)' }} />
+                  </div>
+                  <InfoRow>
+                    <InfoField label="Tipo de Cancelamento / Suspensão" value={ait.tipoCancelamento || '—'} />
+                    <InfoField label="Data do Cancelamento / Suspensão" value={ait.dataCancelamento || '—'} />
+                  </InfoRow>
+                  <div style={{ height: 1, background: 'var(--color-neutral-300)' }} />
+                  <InfoRow>
+                    <InfoField label="Origem do Cancelamento / Suspensão" value={ait.origemCancelamento || '—'} />
+                    <InfoField label="UF de Aceitação do Cancelamento / Suspensão" value={ait.ufCancelamento || '—'} />
+                  </InfoRow>
+                </div>
+              )}
+
               {/* ── Bloco 4: Condutor responsável ── */}
               <div style={{
                 background: 'var(--color-neutral-100)', border: '1px solid var(--color-neutral-300)',
@@ -13198,6 +13271,129 @@ function AITDetail({ aitId, onBack, onEditarPerfil }) {
                   </>
                 )}
               </div>
+
+              {/* ── Bloco 5: Situação da Indicação ── */}
+              {(() => {
+                const prazoPlat = ait.prazoDataFormatada || 'DD/MM/AAAA';
+                const prazoOrgao = ait.prazoOrgaoData || 'DD/MM/AAAA';
+                const dataInd = ait.dataIndicacao2 || 'DD/MM/AAAA HH:MM';
+
+                const HIST = {
+                  indique_agora: [
+                    { status: 'Indique o condutor', date: ait.dataNotificacao || 'DD/MM/AAAA HH:MM', desc: `Prazo para indicação via plataforma ${prazoPlat}` },
+                  ],
+                  em_processamento: [
+                    { status: 'Em processamento', date: dataInd, desc: 'Sua indicação foi enviada e está sendo processada pelo sistema.' },
+                    { status: 'Indique o condutor', date: ait.dataNotificacao || 'DD/MM/AAAA HH:MM', desc: `Prazo para indicação via plataforma ${prazoPlat}` },
+                  ],
+                  aguardando_aceite: [
+                    { status: 'Aguardando aceite do condutor', date: dataInd, desc: 'Peça para o condutor acessar a Carteira Digital de Trânsito e aceitar a indicação.' },
+                    { status: 'Indique o condutor', date: ait.dataNotificacao || 'DD/MM/AAAA HH:MM', desc: `Prazo para indicação via plataforma ${prazoPlat}` },
+                  ],
+                  condutor_indicado: [
+                    { status: 'Condutor indicado', date: dataInd, desc: 'Indicação concluída com sucesso.' },
+                    { status: 'Aguardando aceite do condutor', date: 'DD/MM/AAAA HH:MM', desc: 'Peça para o condutor acessar a Carteira Digital de Trânsito e aceitar a indicação.' },
+                    { status: 'Indique o condutor', date: ait.dataNotificacao || 'DD/MM/AAAA HH:MM', desc: `Prazo para indicação via plataforma ${prazoPlat}` },
+                  ],
+                  em_aberto: ait.indLabel === 'CONDUTOR INDICADO' ? [
+                    { status: 'Condutor indicado', date: dataInd, desc: 'Indicação concluída com sucesso.' },
+                    { status: 'Aguardando aceite do condutor', date: 'DD/MM/AAAA HH:MM', desc: 'Peça para o condutor acessar a Carteira Digital de Trânsito e aceitar a indicação.' },
+                    { status: 'Indique o condutor', date: ait.dataNotificacao || 'DD/MM/AAAA HH:MM', desc: `Prazo para indicação via plataforma ${prazoPlat}` },
+                  ] : [
+                    { status: 'Vencida sem ação do condutor', date: `${prazoOrgao} 23:59`, desc: 'O prazo da indicação da infração venceu e o condutor indicado não confirmou a indicação no aplicativo da Carteira Digital de Trânsito dentro do prazo.' },
+                    { status: 'Aguardando aceite do condutor', date: 'DD/MM/AAAA HH:MM', desc: 'Peça para o condutor acessar a Carteira Digital de Trânsito e aceitar a indicação.' },
+                    { status: 'Indique o condutor', date: ait.dataNotificacao || 'DD/MM/AAAA HH:MM', desc: `Prazo para indicação via plataforma ${prazoPlat}` },
+                  ],
+                  aguardando_aprovacao: [
+                    { status: 'Indicação vencida', date: `${prazoOrgao} 23:59`, desc: 'O prazo para indicar o condutor expirou sem que a indicação fosse concluída.' },
+                    { status: 'Indique o condutor', date: ait.dataNotificacao || 'DD/MM/AAAA HH:MM', desc: `Prazo para indicação via plataforma ${prazoPlat}` },
+                  ],
+                  processando: [
+                    { status: 'Condutor indicado', date: dataInd, desc: 'Indicação concluída com sucesso.' },
+                    { status: 'Aguardando aceite do condutor', date: 'DD/MM/AAAA HH:MM', desc: 'Peça para o condutor acessar a Carteira Digital de Trânsito e aceitar a indicação.' },
+                    { status: 'Indique o condutor', date: ait.dataNotificacao || 'DD/MM/AAAA HH:MM', desc: `Prazo para indicação via plataforma ${prazoPlat}` },
+                  ],
+                  recusado: [
+                    { status: 'Condutor indicado', date: dataInd, desc: 'Indicação concluída com sucesso.' },
+                    { status: 'Aguardando aceite do condutor', date: 'DD/MM/AAAA HH:MM', desc: 'Peça para o condutor acessar a Carteira Digital de Trânsito e aceitar a indicação.' },
+                    { status: 'Indique o condutor', date: ait.dataNotificacao || 'DD/MM/AAAA HH:MM', desc: `Prazo para indicação via plataforma ${prazoPlat}` },
+                  ],
+                  pago: [
+                    { status: 'Condutor indicado', date: dataInd, desc: 'Indicação concluída com sucesso.' },
+                    { status: 'Aguardando aceite do condutor', date: 'DD/MM/AAAA HH:MM', desc: 'Peça para o condutor acessar a Carteira Digital de Trânsito e aceitar a indicação.' },
+                    { status: 'Indique o condutor', date: ait.dataNotificacao || 'DD/MM/AAAA HH:MM', desc: `Prazo para indicação via plataforma ${prazoPlat}` },
+                  ],
+                  falha_indicacao: [
+                    { status: 'Falha na indicação', date: dataInd, desc: 'Não foi possível concluir a indicação. Verifique os dados e tente novamente.' },
+                    { status: 'Indique o condutor', date: ait.dataNotificacao || 'DD/MM/AAAA HH:MM', desc: `Prazo para indicação via plataforma ${prazoPlat}` },
+                  ],
+                  indeferida_orgao: [
+                    { status: 'Indeferida pelo órgão', date: dataInd, desc: 'O órgão autuador não aceitou a indicação.' },
+                    { status: 'Em processamento', date: 'DD/MM/AAAA HH:MM', desc: 'Indicação enviada e sendo processada pelo sistema.' },
+                    { status: 'Indique o condutor', date: ait.dataNotificacao || 'DD/MM/AAAA HH:MM', desc: `Prazo para indicação via plataforma ${prazoPlat}` },
+                  ],
+                  indicacao_vencida: [
+                    { status: 'Indicação vencida', date: `${prazoOrgao} 23:59`, desc: 'O prazo para indicar o condutor expirou.' },
+                    { status: 'Indique o condutor', date: ait.dataNotificacao || 'DD/MM/AAAA HH:MM', desc: `Prazo para indicação via plataforma ${prazoPlat}` },
+                  ],
+                  recusado_condutor: [
+                    { status: 'Recusado pelo condutor', date: 'DD/MM/AAAA HH:MM', desc: 'O condutor recusou a indicação.' },
+                    { status: 'Aguardando aceite do condutor', date: dataInd, desc: 'Peça para o condutor acessar a Carteira Digital de Trânsito e aceitar a indicação.' },
+                    { status: 'Indique o condutor', date: ait.dataNotificacao || 'DD/MM/AAAA HH:MM', desc: `Prazo para indicação via plataforma ${prazoPlat}` },
+                  ],
+                  indique_orgao: [
+                    { status: 'Indique no órgão', date: ait.dataNotificacao || 'DD/MM/AAAA HH:MM', desc: 'Essa infração precisa ser indicada presencialmente no órgão.' },
+                  ],
+                  cancelado_pelo_gestor: [
+                    { status: 'Cancelado pelo gestor', date: 'DD/MM/AAAA HH:MM', desc: 'O processo de indicação do condutor foi cancelado pelo gestor.' },
+                    { status: 'Indique o condutor', date: ait.dataNotificacao || 'DD/MM/AAAA HH:MM', desc: `Prazo para indicação via plataforma ${prazoPlat}` },
+                  ],
+                };
+
+                const NO_IND_VARIANTS = new Set(['cancelado', 'vencido']);
+                const histRows = NO_IND_VARIANTS.has(ait.statusVariant)
+                  ? []
+                  : (HIST[ait.statusVariant] || [
+                      { status: 'Indique o condutor', date: ait.dataNotificacao || 'DD/MM/AAAA HH:MM', desc: `Prazo para indicação via plataforma ${prazoPlat}` },
+                    ]);
+
+                return (
+                  <div style={{ background: 'var(--color-neutral-100)', border: '1px solid var(--color-neutral-300)', borderRadius: 8, padding: 32, display: 'flex', flexDirection: 'column', gap: 20 }}>
+                    {/* Header */}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                        <div style={{ width: 40, height: 40, borderRadius: 6, flexShrink: 0, background: 'var(--color-secondary-200)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--color-secondary-600)' }}><DetIconMapPin /></div>
+                        <span style={{ fontSize: 18, fontWeight: 700, color: 'var(--color-neutral-900)' }}>Situação da Indicação</span>
+                      </div>
+                      <div style={{ height: 1, background: 'var(--color-neutral-300)' }} />
+                    </div>
+                    {/* Tabela ou empty state */}
+                    {histRows.length === 0 ? (
+                      <DetBlockEmptyState
+                        title="Ainda não há dados a indicação de condutor"
+                        description="Quando o processo de indicação de condutor for iniciado, as informações aparecerão aqui."
+                      />
+                    ) : (
+                    <div style={{ display: 'flex', flexDirection: 'column' }}>
+                      {/* Cabeçalho */}
+                      <div style={{ display: 'flex', gap: 16, padding: '0 0 10px 0', borderBottom: '1px solid var(--color-neutral-300)' }}>
+                        <span style={{ flex: '0 0 200px', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', color: 'var(--color-neutral-700)' }}>Status</span>
+                        <span style={{ flex: '0 0 160px', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', color: 'var(--color-neutral-700)' }}>Data</span>
+                        <span style={{ flex: 1, fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', color: 'var(--color-neutral-700)' }}>Descrição</span>
+                      </div>
+                      {/* Linhas */}
+                      {histRows.map((r, i) => (
+                        <div key={i} style={{ display: 'flex', gap: 16, padding: '14px 0', borderBottom: i < histRows.length - 1 ? '1px solid var(--color-neutral-200)' : 'none', alignItems: 'flex-start' }}>
+                          <span style={{ flex: '0 0 200px', fontSize: 14, fontWeight: 400, color: 'var(--color-neutral-900)', fontFamily: 'var(--font-family-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.status}</span>
+                          <span style={{ flex: '0 0 160px', fontSize: 14, fontWeight: 400, color: 'var(--color-neutral-700)', fontFamily: 'var(--font-family-primary)', whiteSpace: 'nowrap' }}>{r.date}</span>
+                          <span style={{ flex: 1, fontSize: 14, fontWeight: 400, color: 'var(--color-neutral-700)', fontFamily: 'var(--font-family-primary)', lineHeight: 1.5 }}>{r.desc}</span>
+                        </div>
+                      ))}
+                    </div>
+                    )}
+                  </div>
+                );
+              })()}
 
               {/* ── Bloco 6: Anexos ── */}
               <div style={{
