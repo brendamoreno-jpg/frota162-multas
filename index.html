@@ -2145,6 +2145,11 @@ const BulkIconCheck = () => (
     <polyline points="20 6 9 17 4 12"/>
   </svg>
 );
+const BulkIconCheckAll = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
+  </svg>
+);
 const BulkIconRotate = () => (
   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><polyline points="3 3 3 8 8 8"/>
@@ -2575,7 +2580,7 @@ function MaisAcoesItems({ activeTab, onExcluir, onReativar, onSnackbar, onDownlo
 }
 
 // ─── Componente principal ─────────────────────────────────────────────────────
-function BulkActionBar({ count, selectionType = 'na_only', activeTab = 'todas', onClose,
+function BulkActionBar({ count, selectionType = 'na_only', activeTab = 'todas', onClose, onSelectAll,
   onSolicitarBoleto, onAtualizarBoleto, onPagamentoEmLote, onVincularCondutor,
   onExcluir, onReativar, onSnackbar, onDownload, onDownloadFormulario, onDownloadBoleto, onImprimirBoleto,
   onImprimirNotificacao, onStatusPago, onConfirmNotifDescontada, onConfirmStatusTratamento,
@@ -2616,6 +2621,7 @@ function BulkActionBar({ count, selectionType = 'na_only', activeTab = 'todas', 
 
       {/* Direita — ações agrupadas */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+        {onSelectAll && <BulkBtn icon={<BulkIconCheckAll/>} label="Selecionar todos" onClick={onSelectAll} />}
         <BulkBtn icon={<BulkIconEraser/>} label="Limpar seleção" onClick={onClose} />
 
         {/* Status de tratamento — standalone (alta frequência) */}
@@ -9818,6 +9824,7 @@ function InfracoesScreen({ onNavigateToDetail, onNovaMulta }) {
             selectionType={selectionType}
             activeTab={activeTab}
             onClose={() => setSelectedRows(new Set())}
+            onSelectAll={() => setSelectedRows(new Set(pagedRows.map(r => r.id)))}
             onSolicitarBoleto={() => setBulkBoleto40Open(true)}
             onAtualizarBoleto={() => setBulkAtualizarOpen(true)}
             onPagamentoEmLote={() => setBulkPagamentoOpen(true)}
@@ -9834,35 +9841,6 @@ function InfracoesScreen({ onNavigateToDetail, onNovaMulta }) {
             onConfirmNotifDescontada={(val) => { setPendingNotifDescontada(val); setBulkNotifDescontadaOpen(true); }}
             onConfirmStatusTratamento={(id, label) => { setPendingStatusTratamento({ id, label }); setBulkStatusTratamentoOpen(true); }}
             selectedRowsData={selectedRowsData} />
-
-          {/* Selecionar todos — aparece quando ≥1 card selecionado */}
-          {selectedRows.size > 0 && (
-            <div style={{
-              display: 'flex', alignItems: 'center', gap: 8,
-              padding: '6px 8px 10px',
-              fontFamily: 'var(--font-family-primary)',
-            }}
-              onClick={(e) => e.stopPropagation()}>
-              <input
-                type="checkbox"
-                checked={allVisibleChecked}
-                ref={(el) => { if (el) el.indeterminate = someVisibleChecked; }}
-                onChange={(e) => {
-                  if (e.target.checked) setSelectedRows(prev => new Set([...prev, ...pagedRows.map(r => r.id)]));
-                  else setSelectedRows(prev => { const s = new Set(prev); pagedRows.forEach(r => s.delete(r.id)); return s; });
-                }}
-                style={{ width: 16, height: 16, accentColor: '#f9401b', cursor: 'pointer', flexShrink: 0 }}
-              />
-              <span style={{ fontSize: 13, color: 'var(--color-neutral-700)', userSelect: 'none' }}>
-                Selecionar todos
-              </span>
-              {someVisibleChecked && (
-                <span style={{ fontSize: 12, color: 'var(--color-neutral-500)' }}>
-                  ({selectedRows.size} de {pagedRows.length})
-                </span>
-              )}
-            </div>
-          )}
 
           {/* Cards — filtrados pelo chip ativo, ordenados e paginados */}
           <div ref={obRefs.bulk} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
