@@ -8759,6 +8759,63 @@ function SnackbarBulkSucesso({ message, onClose }) {
   return null;
 }
 
+// ─── Individual: Modal desativar multa ───────────────────────────────────────
+function ModalDesativarMulta({ onClose, onConfirm }) {
+  useInfEffect(() => {
+    const h = (e) => { if (e.key === 'Escape') onClose(); };
+    document.addEventListener('keydown', h);
+    return () => document.removeEventListener('keydown', h);
+  }, []);
+  const ff = 'var(--font-family-primary)';
+  const IcoX = () => (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+      <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+    </svg>
+  );
+  const IcoAlert = () => (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--color-primary-500)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+    </svg>
+  );
+  return ReactDOM.createPortal(
+    <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10000 }}>
+      <div onClick={e => e.stopPropagation()} style={{ background: '#fff', borderRadius: 8, padding: 24, width: 560, maxWidth: 'calc(100vw - 32px)', display: 'flex', flexDirection: 'column', gap: 16, fontFamily: ff, boxShadow: '2px 2px 8px rgba(0,0,0,0.08)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <IcoAlert />
+            <span style={{ fontSize: 16, fontWeight: 700, color: 'var(--color-neutral-900)', lineHeight: '24px', fontFamily: ff }}>Desativar multa</span>
+          </div>
+          <button onClick={onClose} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 24, height: 24, border: 'none', background: 'transparent', cursor: 'pointer', color: 'var(--color-neutral-700)', padding: 0, borderRadius: 4 }}
+            onMouseEnter={e => e.currentTarget.style.background = 'var(--color-neutral-200)'}
+            onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+          ><IcoX /></button>
+        </div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <p style={{ margin: 0, fontSize: 14, color: 'var(--color-neutral-800)', lineHeight: '22px', fontFamily: ff }}>
+            A multa ficará oculta da listagem e dos relatórios e não gerará mais alertas.
+          </p>
+          <p style={{ margin: 0, fontSize: 14, color: 'var(--color-neutral-800)', lineHeight: '22px', fontFamily: ff }}>
+            Para visualizá-la novamente, use o filtro "Multas inativas" nos filtros avançados.
+          </p>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 16 }}>
+          <button onClick={onClose}
+            style={{ display: 'inline-flex', alignItems: 'center', height: 40, padding: '0 16px', border: 'none', background: 'transparent', fontFamily: ff, fontSize: 14, fontWeight: 700, color: 'var(--color-neutral-900)', cursor: 'pointer', borderRadius: 8 }}
+            onMouseEnter={e => e.currentTarget.style.background = 'var(--color-neutral-200)'}
+            onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+          >Fechar</button>
+          <button onClick={onConfirm}
+            style={{ display: 'inline-flex', alignItems: 'center', height: 40, padding: '0 16px', border: 'none', background: 'var(--color-primary-500)', fontFamily: ff, fontSize: 14, fontWeight: 700, color: '#fff', cursor: 'pointer', borderRadius: 8 }}
+            onMouseEnter={e => e.currentTarget.style.background = 'var(--color-primary-600)'}
+            onMouseLeave={e => e.currentTarget.style.background = 'var(--color-primary-500)'}
+          >Desativar multa</button>
+        </div>
+      </div>
+    </div>,
+    document.body
+  );
+}
+
 // ─── Bulk: Modal confirmar exclusão ──────────────────────────────────────────
 function ModalBulkConfirmExcluir({ count, onClose, onConfirm }) {
   useInfEffect(() => {
@@ -13961,12 +14018,11 @@ function AITDetail({ aitId, onBack, onEditarPerfil }) {
 
     {/* ── Modal confirmar inativar multa ── */}
     {detInativarOpen && ReactDOM.createPortal(
-      <ModalDeleteAnexo
-        nome="esta multa"
+      <ModalDesativarMulta
         onClose={() => setDetInativarOpen(false)}
         onConfirm={() => {
           setDetInativarOpen(false);
-          setDetSnackMsg('Multa inativada com sucesso');
+          setDetSnackMsg('Multa desativada com sucesso');
         }}
       />,
       document.body
