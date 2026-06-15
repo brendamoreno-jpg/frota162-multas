@@ -2119,8 +2119,7 @@ const BulkIconDownload = () => (
 );
 const BulkIconCreditCard = () => (
   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <rect x="1" y="4" width="22" height="16" rx="2" ry="2"/>
-    <line x1="1" y1="10" x2="23" y2="10"/>
+    <path d="M3 5v14"/><path d="M8 5v14"/><path d="M12 5v14"/><path d="M17 5v14"/><path d="M21 5v14"/>
   </svg>
 );
 const BulkIconXCircle = () => (
@@ -2158,6 +2157,24 @@ const BulkIconRotate = () => (
 const BulkIconFolder = () => (
   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
+  </svg>
+);
+const BulkIconNotifDescontada = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <rect x="2" y="5" width="20" height="14" rx="2"/>
+    <line x1="2" y1="10" x2="22" y2="10"/>
+    <polyline points="12 14 12 19"/><polyline points="9 16 12 13 15 16"/>
+  </svg>
+);
+
+const BulkIconCheckCircle = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <circle cx="12" cy="12" r="10"/><polyline points="9 12 11 14 15 10"/>
+  </svg>
+);
+const BulkIconPause = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <circle cx="12" cy="12" r="10"/><line x1="10" y1="15" x2="10" y2="9"/><line x1="14" y1="15" x2="14" y2="9"/>
   </svg>
 );
 
@@ -2469,7 +2486,7 @@ function disabledForSelection(selectionType, side) {
 }
 
 // ─── Conteúdo dos dropdowns ───────────────────────────────────────────────────
-function CondutorItems({ activeTab, selectionType, notifDescontada, setNotifDescontada, onVincularCondutor, onSnackbar, onDownload, onDownloadFormulario, onImprimirNotificacao, onConfirmNotifDescontada }) {
+function CondutorItems({ activeTab, selectionType, notifDescontada, setNotifDescontada, onVincularCondutor, onSnackbar, onDownload, onDownloadFormulario, onImprimirNotificacao, onConfirmNotifDescontada, onNotifDescontadaSelect }) {
   const items = [];
   // Vincular condutor — 3 tabs (permitido em notificação e multa)
   if (showOn(activeTab, '3tabs')) {
@@ -2489,23 +2506,10 @@ function CondutorItems({ activeTab, selectionType, notifDescontada, setNotifDesc
       onClick: onImprimirNotificacao,
     });
   }
-  // Notificação descontada do condutor — 3 tabs (toggle Sim/Não)
+  // Notificação descontada do condutor
   if (showOn(activeTab, '3tabs')) {
-    items.push({
-      icon: <BulkIconCheck/>, label: 'Notificação descontada — Sim',
-      checked: notifDescontada === 'sim',
-      onClick: () => {
-        if (onConfirmNotifDescontada) { onConfirmNotifDescontada('sim'); }
-        else { setNotifDescontada(notifDescontada === 'sim' ? null : 'sim'); onSnackbar && onSnackbar('Notificação descontada registrada como Sim'); }
-      },
-    });
-    items.push({
-      icon: <BulkIconXCircle/>, label: 'Notificação descontada — Não',
-      checked: notifDescontada === 'nao',
-      onClick: () => {
-        if (onConfirmNotifDescontada) { onConfirmNotifDescontada('nao'); }
-        else { setNotifDescontada(notifDescontada === 'nao' ? null : 'nao'); onSnackbar && onSnackbar('Notificação descontada registrada como Não'); }
-      },
+    items.push({ icon: <BulkIconNotifDescontada/>, label: 'Notificação descontada do condutor',
+      onClick: onNotifDescontadaSelect,
     });
   }
   return items;
@@ -2534,7 +2538,7 @@ function BoletosItems({ activeTab, selectionType, onSolicitarBoleto, onAtualizar
   // Atualizar boleto 20% — 3 tabs (boletos vencidos de multas ainda não vencidas)
   if (showOn(activeTab, '3tabs')) {
     items.push({ icon: <BulkIconRefreshCcw/>, label: 'Atualizar boleto',
-      onClick: () => onSnackbar && onSnackbar('Boleto 20% atualizado com sucesso'),
+      onClick: onAtualizarBoleto,
     });
   }
   // Baixar boleto — 3 tabs
@@ -2549,32 +2553,16 @@ function BoletosItems({ activeTab, selectionType, onSolicitarBoleto, onAtualizar
       onClick: onImprimirBoleto,
     });
   }
-  // Alterar status para pago — Todas · Pagamento
-  if (showOn(activeTab, 'todas_pagamento')) {
-    const ds = disabledForSelection(selectionType, 'pagamento');
-    items.push({ icon: <BulkIconCheck/>, label: 'Alterar status para pago', ...ds,
-      onClick: ds.disabled ? undefined : onStatusPago,
-    });
-  }
   return items;
 }
 
-function MaisAcoesItems({ activeTab, onExcluir, onReativar, onSnackbar, onDownload }) {
+function MaisAcoesItems({ activeTab, onExcluir, onReativar, onSnackbar, onDownload, onStatusPago }) {
   const items = [];
   if (showOn(activeTab, '3tabs')) {
-    items.push({
-      icon: <BulkIconRotate/>,
-      label: 'Reativar',
-      onClick: onReativar,
-    });
-    items.push({ icon: <BulkIconFolder/>, label: 'Baixar arquivos da multa',
-      onClick: onDownload,
-    });
-    items.push({
-      icon: <BulkIconXCircle/>,
-      label: 'Inativar',
-      onClick: onExcluir,
-    });
+    items.push({ icon: <BulkIconFolder/>, label: 'Baixar arquivos da multa', onClick: onDownload });
+    items.push({ icon: <BulkIconCheckCircle/>, label: 'Alterar status para Pago', onClick: onStatusPago });
+    items.push({ icon: <BulkIconPause/>, label: 'Desativar multa', onClick: onExcluir });
+    items.push({ icon: <BulkIconRotate/>, label: 'Reativar multa', onClick: onReativar });
   }
   return items;
 }
@@ -2584,6 +2572,7 @@ function BulkActionBar({ count, selectionType = 'na_only', activeTab = 'todas', 
   onSolicitarBoleto, onAtualizarBoleto, onPagamentoEmLote, onVincularCondutor,
   onExcluir, onReativar, onSnackbar, onDownload, onDownloadFormulario, onDownloadBoleto, onImprimirBoleto,
   onImprimirNotificacao, onStatusPago, onConfirmNotifDescontada, onConfirmStatusTratamento,
+  onNotifDescontadaSelect,
   selectedRowsData = [] }) {
   const [notifDescontada, setNotifDescontada] = React.useState(null);
 
@@ -2595,9 +2584,9 @@ function BulkActionBar({ count, selectionType = 'na_only', activeTab = 'todas', 
   const hasPagavel = selectedRowsData.some(r => r.statusVariant === 'em_aberto');
   const showPagarBtn = selectedRowsData.length > 0; // mostra sempre que há seleção
 
-  const condutorItems = CondutorItems({ activeTab, selectionType, notifDescontada, setNotifDescontada, onVincularCondutor, onSnackbar, onDownload, onDownloadFormulario, onImprimirNotificacao, onConfirmNotifDescontada });
+  const condutorItems = CondutorItems({ activeTab, selectionType, notifDescontada, setNotifDescontada, onVincularCondutor, onSnackbar, onDownload, onDownloadFormulario, onImprimirNotificacao, onConfirmNotifDescontada, onNotifDescontadaSelect });
   const boletosItems  = BoletosItems({ activeTab, selectionType, onSolicitarBoleto, onAtualizarBoleto, onPagamentoEmLote, onSnackbar, onDownload, onDownloadBoleto, onImprimirBoleto, onStatusPago, hasElegivel40 });
-  const maisItems     = MaisAcoesItems({ activeTab, onExcluir, onReativar, onSnackbar, onDownload });
+  const maisItems     = MaisAcoesItems({ activeTab, onExcluir, onReativar, onSnackbar, onDownload, onStatusPago });
 
   return (
     <div style={{
@@ -4691,7 +4680,7 @@ function ModalAtualizarBoleto({ placa, ait, statusText, valor, rows, onClose, on
 
         {/* Header */}
         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', padding: '24px 24px 0' }}>
-          <span style={{ fontSize: 16, fontWeight: 700, color: 'var(--color-neutral-900)', lineHeight: 1.5 }}>Solicitar atualização do boleto</span>
+          <span style={{ fontSize: 16, fontWeight: 700, color: 'var(--color-neutral-900)', lineHeight: 1.5 }}>{isBulk ? 'Atualizar boletos' : 'Solicitar atualização do boleto'}</span>
           <button onClick={onClose} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 32, height: 32, borderRadius: 8, border: 'none', background: 'transparent', cursor: 'pointer', color: 'var(--color-neutral-600)', flexShrink: 0, marginLeft: 12 }}
             onMouseEnter={e => e.currentTarget.style.background = 'var(--color-neutral-100)'}
             onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
@@ -4700,8 +4689,10 @@ function ModalAtualizarBoleto({ placa, ait, statusText, valor, rows, onClose, on
 
         {/* Body */}
         <div style={{ padding: '16px 24px 0', display: 'flex', flexDirection: 'column', gap: 16 }}>
-          <p style={{ margin: 0, fontSize: 16, color: 'var(--color-neutral-800)', lineHeight: 1.6 }}>
-            O boleto atualizado ficará disponível para download em até 3 dias úteis. Vamos te avisar quando estiver pronto. O novo valor pode incluir juros e encargos pelo período em atraso.
+          <p style={{ margin: 0, fontSize: 14, color: 'var(--color-neutral-900)', lineHeight: 1.6 }}>
+            {isBulk
+              ? 'Boletos com multa associada ou ainda no prazo não serão atualizados.'
+              : 'O boleto atualizado ficará disponível para download em até 3 dias úteis. Vamos te avisar quando estiver pronto. O novo valor pode incluir juros e encargos pelo período em atraso.'}
           </p>
 
           {/* Tabela resumo */}
@@ -4710,19 +4701,26 @@ function ModalAtualizarBoleto({ placa, ait, statusText, valor, rows, onClose, on
               <tr>
                 <th style={thStyle}>Placa</th>
                 <th style={thStyle}>AIT</th>
-                <th style={thStyle}>Status</th>
-                <th style={thTotalStyle}>Total</th>
+                <th style={thStyle}>{isBulk ? 'Status' : 'Status'}</th>
+                {!isBulk && <th style={thTotalStyle}>Total</th>}
               </tr>
             </thead>
             <tbody>
-              {isBulk ? rows.map((r, i) => (
-                <tr key={r.id || i}>
-                  <td style={tdStyle}>{r.placa}</td>
-                  <td style={tdStyle}>{r.ait}</td>
-                  <td style={tdStyle}>{r.statusVariant}</td>
-                  <td style={tdTotalRight}>{r.valor}</td>
-                </tr>
-              )) : (
+              {isBulk ? rows.map((r, i) => {
+                const boletoStatus = (() => {
+                  if (r.statusBoletoSne === 'manual') return 'Boleto inserido manualmente';
+                  if (r.tipo === 'Notificação' && !r.statusBoletoSne) return 'Notificação sem boleto';
+                  if (r.statusVariant === 'vencido' || r.statusVariant === 'vencida') return 'Vencido';
+                  return 'No prazo';
+                })();
+                return (
+                  <tr key={r.id || i} style={{ background: i % 2 === 0 ? 'var(--color-neutral-200)' : '#fff' }}>
+                    <td style={tdStyle}>{r.placa}</td>
+                    <td style={tdStyle}>{r.ait}</td>
+                    <td style={tdStyle}>{boletoStatus}</td>
+                  </tr>
+                );
+              }) : (
                 <tr>
                   <td style={tdStyle}>{placa}</td>
                   <td style={tdStyle}>{ait}</td>
@@ -4730,13 +4728,27 @@ function ModalAtualizarBoleto({ placa, ait, statusText, valor, rows, onClose, on
                   <td style={tdTotalRight}>{valor}</td>
                 </tr>
               )}
-              <tr>
-                <td style={tdTotalStyle}>Total</td>
-                <td style={tdTotalStyle}></td>
-                <td style={tdTotalStyle}></td>
-                <td style={tdTotalRightBold}>{isBulk ? `${rows.length} multa${rows.length !== 1 ? 's' : ''}` : valor}</td>
-              </tr>
             </tbody>
+            {isBulk && (
+              <tfoot>
+                <tr>
+                  <td colSpan={2} style={{ ...tdStyle, fontWeight: 700, padding: '10px 8px', background: '#fff' }}>Boletos a atualizar</td>
+                  <td style={{ ...tdStyle, fontWeight: 700, padding: '10px 8px', background: '#fff' }}>
+                    {rows.filter(r => r.statusVariant === 'vencido' || r.statusVariant === 'vencida').length}
+                  </td>
+                </tr>
+              </tfoot>
+            )}
+            {!isBulk && (
+              <tfoot>
+                <tr>
+                  <td style={tdTotalStyle}>Total</td>
+                  <td style={tdTotalStyle}></td>
+                  <td style={tdTotalStyle}></td>
+                  <td style={tdTotalRightBold}>{valor}</td>
+                </tr>
+              </tfoot>
+            )}
           </table>
         </div>
 
@@ -4759,6 +4771,38 @@ function ModalAtualizarBoleto({ placa, ait, statusText, valor, rows, onClose, on
 }
 
 // ─── Modal: Sucesso atualização do boleto ─────────────────────────────────────
+function ModalBaixarBoletoSucesso({ onClose }) {
+  const IcoX = () => (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+  );
+  const IcoCheck = () => (
+    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+  );
+  return ReactDOM.createPortal(
+    <div onClick={onClose} style={{ position: 'fixed', inset: 0, zIndex: 10002, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <div onClick={e => e.stopPropagation()} style={{ background: '#fff', borderRadius: 12, width: 440, maxWidth: 'calc(100vw - 32px)', boxShadow: '0 12px 40px rgba(0,0,0,0.18)', fontFamily: 'var(--font-family-primary)', display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '32px 32px 28px', gap: 16, position: 'relative' }}>
+        <button onClick={onClose} style={{ position: 'absolute', top: 16, right: 16, display: 'flex', alignItems: 'center', justifyContent: 'center', width: 32, height: 32, borderRadius: 8, border: 'none', background: 'transparent', cursor: 'pointer', color: 'var(--color-neutral-600)' }}
+          onMouseEnter={e => e.currentTarget.style.background = 'var(--color-neutral-100)'}
+          onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+        ><IcoX /></button>
+        <div style={{ width: 72, height: 72, borderRadius: '50%', background: 'linear-gradient(135deg, #4ade80, #22c55e)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, boxShadow: '0 4px 16px rgba(34,197,94,0.3)' }}>
+          <IcoCheck />
+        </div>
+        <span style={{ fontSize: 18, fontWeight: 700, color: 'var(--color-neutral-900)', textAlign: 'center', lineHeight: 1.4 }}>Solicitação concluída com sucesso!</span>
+        <p style={{ margin: 0, fontSize: 16, color: 'var(--color-neutral-700)', textAlign: 'center', lineHeight: 1.6 }}>
+          O processo de envio foi iniciado. Dentro de alguns minutos você receberá um email contendo os arquivos.
+        </p>
+        <button onClick={onClose}
+          style={{ display: 'inline-flex', alignItems: 'center', padding: '0 32px', height: 40, borderRadius: 8, border: 'none', background: 'var(--color-primary-500, #E05A00)', fontFamily: 'var(--font-family-primary)', fontSize: 14, fontWeight: 700, color: '#fff', cursor: 'pointer', marginTop: 4 }}
+          onMouseEnter={e => e.currentTarget.style.background = 'var(--color-primary-600, #C44E00)'}
+          onMouseLeave={e => e.currentTarget.style.background = 'var(--color-primary-500, #E05A00)'}
+        >Entendi</button>
+      </div>
+    </div>,
+    document.body
+  );
+}
+
 function ModalAtualizarBoletoSucesso({ onClose }) {
   useInfEffect(() => {
     const h = (e) => { if (e.key === 'Escape') onClose(); };
@@ -8686,7 +8730,7 @@ window.showBulkSnackbar = (function() {
       document.body.appendChild(el);
     }
     Object.assign(el.style, {
-      position: 'fixed', top: 24, left: '50%', transform: 'translateX(-50%)',
+      position: 'fixed', top: '24px', left: '50%', transform: 'translateX(-50%)',
       zIndex: '99999',
       background: '#e8f9f2', border: '1px solid #15be78', borderRadius: '8px',
       display: 'flex', alignItems: 'center', gap: '8px',
@@ -8728,19 +8772,32 @@ function ModalBulkConfirmExcluir({ count, onClose, onConfirm }) {
       <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
     </svg>
   );
+  const IcoAlert = () => (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--color-primary-500)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+    </svg>
+  );
   return ReactDOM.createPortal(
     <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10000 }}>
-      <div onClick={e => e.stopPropagation()} style={{ background: '#fff', borderRadius: 8, padding: 16, width: 640, maxWidth: 'calc(100vw - 32px)', display: 'flex', flexDirection: 'column', gap: 16, fontFamily: ff, boxShadow: '2px 2px 8px rgba(0,0,0,0.08)' }}>
+      <div onClick={e => e.stopPropagation()} style={{ background: '#fff', borderRadius: 8, padding: 24, width: 560, maxWidth: 'calc(100vw - 32px)', display: 'flex', flexDirection: 'column', gap: 16, fontFamily: ff, boxShadow: '2px 2px 8px rgba(0,0,0,0.08)' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <span style={{ fontSize: 16, fontWeight: 700, color: 'var(--color-neutral-900)', lineHeight: '24px', fontFamily: ff }}>Inativar multas</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <IcoAlert />
+            <span style={{ fontSize: 16, fontWeight: 700, color: 'var(--color-neutral-900)', lineHeight: '24px', fontFamily: ff }}>Desativar multas</span>
+          </div>
           <button onClick={onClose} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 24, height: 24, border: 'none', background: 'transparent', cursor: 'pointer', color: 'var(--color-neutral-700)', padding: 0, borderRadius: 4 }}
             onMouseEnter={e => e.currentTarget.style.background = 'var(--color-neutral-200)'}
             onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
           ><IcoX /></button>
         </div>
-        <p style={{ margin: 0, fontSize: 14, fontWeight: 400, color: 'var(--color-neutral-800)', lineHeight: '21px', fontFamily: ff }}>
-          Tem certeza que deseja inativar {count} multa{count !== 1 ? 's' : ''}?
-        </p>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <p style={{ margin: 0, fontSize: 14, color: 'var(--color-neutral-800)', lineHeight: '22px', fontFamily: ff }}>
+            As multas ficarão ocultas da listagem e dos relatórios e não gerarão mais alertas.
+          </p>
+          <p style={{ margin: 0, fontSize: 14, color: 'var(--color-neutral-800)', lineHeight: '22px', fontFamily: ff }}>
+            Para visualizá-la novamente, use o filtro "Multas inativas" nos filtros avançados.
+          </p>
+        </div>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 16 }}>
           <button onClick={onClose}
             style={{ display: 'inline-flex', alignItems: 'center', height: 40, padding: '0 16px', border: 'none', background: 'transparent', fontFamily: ff, fontSize: 14, fontWeight: 700, color: 'var(--color-neutral-900)', cursor: 'pointer', borderRadius: 8 }}
@@ -8751,7 +8808,7 @@ function ModalBulkConfirmExcluir({ count, onClose, onConfirm }) {
             style={{ display: 'inline-flex', alignItems: 'center', height: 40, padding: '0 16px', border: 'none', background: 'var(--color-primary-500)', fontFamily: ff, fontSize: 14, fontWeight: 700, color: '#fff', cursor: 'pointer', borderRadius: 8 }}
             onMouseEnter={e => e.currentTarget.style.background = 'var(--color-primary-600)'}
             onMouseLeave={e => e.currentTarget.style.background = 'var(--color-primary-500)'}
-          >Sim, inativar!</button>
+          >Desativar multas</button>
         </div>
       </div>
     </div>,
@@ -8772,18 +8829,26 @@ function ModalBulkConfirmReativar({ count, onClose, onConfirm }) {
       <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
     </svg>
   );
+  const IcoAlert = () => (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--color-primary-500)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+    </svg>
+  );
   return ReactDOM.createPortal(
     <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10000 }}>
-      <div onClick={e => e.stopPropagation()} style={{ background: '#fff', borderRadius: 8, padding: 16, width: 640, maxWidth: 'calc(100vw - 32px)', display: 'flex', flexDirection: 'column', gap: 16, fontFamily: ff, boxShadow: '2px 2px 8px rgba(0,0,0,0.08)' }}>
+      <div onClick={e => e.stopPropagation()} style={{ background: '#fff', borderRadius: 8, padding: 24, width: 560, maxWidth: 'calc(100vw - 32px)', display: 'flex', flexDirection: 'column', gap: 16, fontFamily: ff, boxShadow: '2px 2px 8px rgba(0,0,0,0.08)' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <span style={{ fontSize: 16, fontWeight: 700, color: 'var(--color-neutral-900)', lineHeight: '24px', fontFamily: ff }}>Reativar multas</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <IcoAlert />
+            <span style={{ fontSize: 16, fontWeight: 700, color: 'var(--color-neutral-900)', lineHeight: '24px', fontFamily: ff }}>Reativar esta multa</span>
+          </div>
           <button onClick={onClose} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 24, height: 24, border: 'none', background: 'transparent', cursor: 'pointer', color: 'var(--color-neutral-700)', padding: 0, borderRadius: 4 }}
             onMouseEnter={e => e.currentTarget.style.background = 'var(--color-neutral-200)'}
             onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
           ><IcoX /></button>
         </div>
-        <p style={{ margin: 0, fontSize: 14, fontWeight: 400, color: 'var(--color-neutral-800)', lineHeight: '21px', fontFamily: ff }}>
-          Tem certeza que deseja reativar {count} multa{count !== 1 ? 's' : ''}?
+        <p style={{ margin: 0, fontSize: 14, color: 'var(--color-neutral-800)', lineHeight: '22px', fontFamily: ff }}>
+          Esta multa voltará a aparecer na listagem e nos relatórios e voltará a gerar alertas normalmente.
         </p>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 16 }}>
           <button onClick={onClose}
@@ -8795,7 +8860,7 @@ function ModalBulkConfirmReativar({ count, onClose, onConfirm }) {
             style={{ display: 'inline-flex', alignItems: 'center', height: 40, padding: '0 16px', border: 'none', background: 'var(--color-primary-500)', fontFamily: ff, fontSize: 14, fontWeight: 700, color: '#fff', cursor: 'pointer', borderRadius: 8 }}
             onMouseEnter={e => e.currentTarget.style.background = 'var(--color-primary-600)'}
             onMouseLeave={e => e.currentTarget.style.background = 'var(--color-primary-500)'}
-          >Sim, reativar!</button>
+          >Reativar multa</button>
         </div>
       </div>
     </div>,
@@ -8805,6 +8870,61 @@ function ModalBulkConfirmReativar({ count, onClose, onConfirm }) {
 
 // ─── Bulk: Modal solicitar boleto 40% ────────────────────────────────────────
 // Elegíveis: apenas penalidades (tipo 'penalidade') com status 'em_aberto'.
+// Modal com select — Notificação descontada do condutor
+function ModalBulkNotifDescontadaSelect({ onClose, onConfirm }) {
+  const ff = 'var(--font-family-primary)';
+  const [selected, setSelected] = React.useState('');
+  const [open, setOpen] = React.useState(false);
+  const options = ['Sim', 'Não'];
+  return (
+    <_ModalBulkBase title="Notificação descontada do condutor" onClose={onClose} hideFooter>
+      <p style={{ margin: '0 0 12px', fontSize: 14, fontWeight: 700, color: 'var(--color-neutral-900)', fontFamily: ff }}>Selecione uma opção</p>
+      <div style={{ position: 'relative', marginBottom: 24 }}>
+        <div
+          onClick={() => setOpen(!open)}
+          style={{
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+            padding: '0 14px', height: 44, borderRadius: 8, cursor: 'pointer',
+            border: '1.5px solid var(--color-neutral-400)', background: '#fff',
+            fontFamily: ff, fontSize: 14, color: selected ? 'var(--color-neutral-900)' : 'var(--color-neutral-500)',
+          }}
+        >
+          <span>{selected || 'Selecione'}</span>
+          {selected
+            ? <span onClick={e => { e.stopPropagation(); setSelected(''); setOpen(false); }} style={{ cursor: 'pointer', color: 'var(--color-neutral-500)', fontSize: 16, lineHeight: 1 }}>✕</span>
+            : <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="6 9 12 15 18 9"/></svg>
+          }
+        </div>
+        {open && (
+          <div style={{ position: 'absolute', top: 'calc(100% + 4px)', left: 0, right: 0, zIndex: 99, background: '#fff', border: '1.5px solid var(--color-neutral-400)', borderRadius: 8, overflow: 'hidden' }}>
+            {options.map(opt => (
+              <div key={opt} onClick={() => { setSelected(opt); setOpen(false); }}
+                style={{ padding: '10px 14px', fontFamily: ff, fontSize: 14, cursor: 'pointer', color: 'var(--color-neutral-900)', background: selected === opt ? 'var(--color-neutral-200)' : '#fff' }}
+                onMouseEnter={e => e.currentTarget.style.background = 'var(--color-neutral-100)'}
+                onMouseLeave={e => e.currentTarget.style.background = selected === opt ? 'var(--color-neutral-200)' : '#fff'}
+              >{opt}</div>
+            ))}
+          </div>
+        )}
+      </div>
+      <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, fontFamily: ff }}>
+        <button onClick={onClose}
+          style={{ padding: '0 16px', height: 40, borderRadius: 8, border: '1.5px solid var(--color-neutral-300)', background: '#fff', fontFamily: ff, fontSize: 14, fontWeight: 600, color: 'var(--color-neutral-700)', cursor: 'pointer' }}>
+          Cancelar
+        </button>
+        <button
+          disabled={!selected}
+          onClick={() => selected && onConfirm(selected)}
+          style={{ padding: '0 16px', height: 40, borderRadius: 8, border: 'none', background: selected ? 'var(--color-primary-500)' : 'var(--color-neutral-300)', fontFamily: ff, fontSize: 14, fontWeight: 700, color: selected ? '#fff' : 'var(--color-neutral-500)', cursor: selected ? 'pointer' : 'default' }}
+          onMouseEnter={e => { if (selected) e.currentTarget.style.background = 'var(--color-primary-600)'; }}
+          onMouseLeave={e => { if (selected) e.currentTarget.style.background = 'var(--color-primary-500)'; }}>
+          Confirmar
+        </button>
+      </div>
+    </_ModalBulkBase>
+  );
+}
+
 // Modal de confirmação — Notificação descontada Sim/Não
 function ModalBulkConfirmNotifDescontada({ valor, onClose, onConfirm }) {
   const ff = 'var(--font-family-primary)';
@@ -8886,7 +9006,107 @@ function InlineAlert({ variant = 'warning', children }) {
 }
 
 // ─── Bulk: Modal compartilhado — estrutura base ───────────────────────────────
-function _ModalBulkBase({ title, children, onClose, hideFooter }) {
+function ModalVerificacaoIdentidade({ onClose, onConfirm }) {
+  const [digits, setDigits] = React.useState(['','','','','','']);
+  const refs = Array.from({ length: 6 }, () => React.useRef(null));
+  const ff = 'var(--font-family-primary)';
+  const full = digits.every(d => d !== '');
+
+  const handleDigit = (i, val) => {
+    const v = val.replace(/\D/g, '').slice(-1);
+    const next = digits.slice(); next[i] = v;
+    setDigits(next);
+    if (v && i < 5) refs[i + 1].current?.focus();
+  };
+  const handleKey = (i, e) => {
+    if (e.key === 'Backspace' && !digits[i] && i > 0) refs[i - 1].current?.focus();
+  };
+  const IcoX = () => (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+      <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+    </svg>
+  );
+  return ReactDOM.createPortal(
+    <div onClick={onClose} style={{ position: 'fixed', inset: 0, zIndex: 10001, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <div onClick={e => e.stopPropagation()} style={{ background: '#fff', borderRadius: 12, width: 480, maxWidth: 'calc(100vw - 32px)', padding: '32px 32px 28px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 20, position: 'relative', boxShadow: '0 12px 40px rgba(0,0,0,0.16)', fontFamily: ff }}>
+        <button onClick={onClose} style={{ position: 'absolute', top: 16, right: 16, display: 'flex', alignItems: 'center', justifyContent: 'center', width: 32, height: 32, borderRadius: 8, border: 'none', background: 'transparent', cursor: 'pointer', color: 'var(--color-neutral-600)' }}
+          onMouseEnter={e => e.currentTarget.style.background = 'var(--color-neutral-100)'}
+          onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+        ><IcoX /></button>
+
+        <span style={{ fontSize: 20, fontWeight: 700, color: 'var(--color-neutral-900)', textAlign: 'center' }}>Verificação de identidade</span>
+
+        <div style={{ textAlign: 'center', display: 'flex', flexDirection: 'column', gap: 4 }}>
+          <p style={{ margin: 0, fontSize: 15, color: 'var(--color-neutral-700)', lineHeight: 1.6 }}>Para continuar com o pagamento, confirme sua identidade.</p>
+          <p style={{ margin: 0, fontSize: 15, color: 'var(--color-neutral-700)' }}>Enviamos um código de verificação para:</p>
+          <p style={{ margin: 0, fontSize: 15, fontWeight: 700, color: 'var(--color-neutral-900)' }}>brenda.moreno@frota162.com.br</p>
+        </div>
+
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12, width: '100%' }}>
+          <span style={{ fontSize: 15, fontWeight: 700, color: 'var(--color-neutral-900)' }}>Digite o código recebido:</span>
+          <div style={{ display: 'flex', gap: 10 }}>
+            {digits.map((d, i) => (
+              <input key={i} ref={refs[i]} type="text" inputMode="numeric" maxLength={1} value={d}
+                onChange={e => handleDigit(i, e.target.value)}
+                onKeyDown={e => handleKey(i, e)}
+                style={{ width: 52, height: 60, borderRadius: 10, border: '1.5px solid var(--color-neutral-300)', textAlign: 'center', fontSize: 22, fontWeight: 600, fontFamily: ff, color: 'var(--color-neutral-900)', outline: 'none', background: '#fff' }}
+                onFocus={e => e.target.style.borderColor = 'var(--color-primary-500)'}
+                onBlur={e => e.target.style.borderColor = 'var(--color-neutral-300)'}
+              />
+            ))}
+          </div>
+          <button onClick={() => {}}
+            style={{ fontSize: 14, color: 'var(--color-primary-500)', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline', fontFamily: ff, padding: 0 }}
+          >Não recebeu o código? Reenviar</button>
+        </div>
+
+        <button onClick={onConfirm} disabled={!full}
+          style={{ width: '100%', height: 48, borderRadius: 10, border: 'none', background: full ? 'var(--color-primary-500)' : 'var(--color-neutral-300)', fontFamily: ff, fontSize: 16, fontWeight: 700, color: full ? '#fff' : 'var(--color-neutral-500)', cursor: full ? 'pointer' : 'default', marginTop: 4 }}
+          onMouseEnter={e => { if (full) e.currentTarget.style.background = 'var(--color-primary-600)'; }}
+          onMouseLeave={e => { if (full) e.currentTarget.style.background = 'var(--color-primary-500)'; }}
+        >Confirmar pagamento</button>
+      </div>
+    </div>,
+    document.body
+  );
+}
+
+function ModalPagamentoSucesso({ onClose }) {
+  const ff = 'var(--font-family-primary)';
+  const IcoX = () => (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+      <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+    </svg>
+  );
+  const IcoCheck = () => (
+    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+  );
+  return ReactDOM.createPortal(
+    <div onClick={onClose} style={{ position: 'fixed', inset: 0, zIndex: 10002, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <div onClick={e => e.stopPropagation()} style={{ background: '#fff', borderRadius: 12, width: 480, maxWidth: 'calc(100vw - 32px)', padding: '36px 32px 28px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16, position: 'relative', boxShadow: '0 12px 40px rgba(0,0,0,0.16)', fontFamily: ff }}>
+        <button onClick={onClose} style={{ position: 'absolute', top: 16, right: 16, display: 'flex', alignItems: 'center', justifyContent: 'center', width: 32, height: 32, borderRadius: 8, border: 'none', background: 'transparent', cursor: 'pointer', color: 'var(--color-neutral-600)' }}
+          onMouseEnter={e => e.currentTarget.style.background = 'var(--color-neutral-100)'}
+          onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+        ><IcoX /></button>
+        <div style={{ width: 72, height: 72, borderRadius: '50%', background: 'linear-gradient(135deg, #4ade80, #22c55e)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 16px rgba(34,197,94,0.3)' }}>
+          <IcoCheck />
+        </div>
+        <span style={{ fontSize: 20, fontWeight: 700, color: 'var(--color-neutral-900)', textAlign: 'center' }}>Seu pagamento foi solicitado com sucesso!</span>
+        <p style={{ margin: 0, fontSize: 15, color: 'var(--color-neutral-700)', textAlign: 'center', lineHeight: 1.6 }}>
+          Confirmamos o envio da solicitação de pagamento. O valor já foi debitado do seu saldo e o processamento pode levar até <strong>48 horas</strong>.
+        </p>
+        <button onClick={onClose}
+          style={{ display: 'inline-flex', alignItems: 'center', padding: '0 32px', height: 44, borderRadius: 10, border: 'none', background: 'var(--color-primary-500)', fontFamily: ff, fontSize: 15, fontWeight: 700, color: '#fff', cursor: 'pointer', marginTop: 4 }}
+          onMouseEnter={e => e.currentTarget.style.background = 'var(--color-primary-600)'}
+          onMouseLeave={e => e.currentTarget.style.background = 'var(--color-primary-500)'}
+        >Fechar</button>
+      </div>
+    </div>,
+    document.body
+  );
+}
+
+function _ModalBulkBase({ title, children, onClose, hideFooter, onConfirm }) {
   useInfEffect(() => {
     const h = (e) => { if (e.key === 'Escape') onClose(); };
     document.addEventListener('keydown', h);
@@ -8920,7 +9140,7 @@ function _ModalBulkBase({ title, children, onClose, hideFooter }) {
               onMouseEnter={e => e.currentTarget.style.background = 'var(--color-neutral-200)'}
               onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
             >Fechar</button>
-            <button onClick={onClose}
+            <button onClick={onConfirm || onClose}
               style={{ display: 'inline-flex', alignItems: 'center', padding: '0 16px', height: 40, borderRadius: 8, border: 'none', background: 'var(--color-primary-500)', fontFamily: ff, fontSize: 14, fontWeight: 700, color: '#fff', cursor: 'pointer' }}
               onMouseEnter={e => e.currentTarget.style.background = 'var(--color-primary-600)'}
               onMouseLeave={e => e.currentTarget.style.background = 'var(--color-primary-500)'}
@@ -8934,28 +9154,90 @@ function _ModalBulkBase({ title, children, onClose, hideFooter }) {
 }
 
 // RQT-11 — Baixar boleto: modal com contagem de disponíveis vs sem boleto
-function ModalBulkBaixarBoleto({ rows, onClose }) {
+function ModalBulkBaixarBoleto({ rows, onClose, onConfirm, onAtualizar, onSolicitarBoleto40 }) {
   const ff = 'var(--font-family-primary)';
-  // Têm boleto: em_aberto, vencida, pago, indicacao_pendente
-  const comBoleto = rows.filter(r => ['em_aberto', 'vencida', 'pago', 'indicacao_pendente'].includes(r.statusVariant)).length;
-  const semBoleto = rows.length - comBoleto;
-  const vencidos  = rows.filter(r => r.statusVariant === 'vencida').length;
-  return (
-    <_ModalBulkBase title="Baixar boleto" onClose={onClose}>
-      <p style={{ margin: 0, fontSize: 14, color: 'var(--color-neutral-700)', lineHeight: '22px', fontFamily: ff }}>
-        Em instantes você receberá um <strong>e-mail</strong> com os boletos das multas selecionadas.
-      </p>
-      {semBoleto > 0 && (
-        <InlineAlert variant="info">
-          <strong>{semBoleto} {semBoleto !== 1 ? 'multas não têm' : 'multa não tem'} boleto disponível</strong> e {semBoleto !== 1 ? 'serão ignoradas' : 'será ignorada'} no envio.
-        </InlineAlert>
-      )}
-      {vencidos > 0 && (
-        <InlineAlert variant="warning">
-          <strong>{vencidos} {vencidos !== 1 ? 'boletos estão vencidos' : 'boleto está vencido'}</strong>. Boletos vencidos podem não ser aceitos para pagamento — verifique antes de utilizar.
-        </InlineAlert>
-      )}
-    </_ModalBulkBase>
+  const vencidos = rows.filter(r => r.statusVariant === 'vencido' || r.statusVariant === 'vencida');
+  const disponiveis = rows.filter(r => !['vencido','vencida'].includes(r.statusVariant));
+  const total = disponiveis.length;
+
+  const IcoX = () => (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+      <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+    </svg>
+  );
+  const thStyle = { padding: '6px 8px', fontSize: 12, fontWeight: 700, textAlign: 'left', color: '#3a3940', textTransform: 'uppercase', background: 'var(--color-neutral-200)', letterSpacing: '0.04em', fontFamily: ff };
+  const tdStyle = { padding: '8px 8px', fontSize: 14, fontWeight: 400, color: '#2f2e33', fontFamily: ff };
+
+  return ReactDOM.createPortal(
+    <div onClick={onClose} style={{ position: 'fixed', inset: 0, zIndex: 10000, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <div onClick={e => e.stopPropagation()} style={{ background: '#fff', borderRadius: 8, width: 640, maxWidth: 'calc(100vw - 32px)', maxHeight: '90vh', boxShadow: '2px 2px 8px rgba(0,0,0,0.08)', fontFamily: ff, display: 'flex', flexDirection: 'column', gap: 16, padding: 16, overflow: 'hidden' }}>
+
+        {/* Header */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <span style={{ fontSize: 16, fontWeight: 700, color: 'var(--color-neutral-900)', lineHeight: '24px' }}>Baixar boletos</span>
+          <button onClick={onClose} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 24, height: 24, border: 'none', background: 'transparent', cursor: 'pointer', color: 'var(--color-neutral-700)', padding: 0, borderRadius: 4 }}
+            onMouseEnter={e => e.currentTarget.style.background = 'var(--color-neutral-200)'}
+            onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+          ><IcoX /></button>
+        </div>
+
+        {/* Body */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12, overflowY: 'auto' }}>
+          <p style={{ margin: 0, fontSize: 14, color: 'var(--color-neutral-900)', lineHeight: 1.6, fontFamily: ff }}>
+            Ao avançar, os boletos disponíveis serão solicitados e aparecerão na plataforma em até <strong>72 horas (3 dias)</strong>. Você receberá um aviso quando estiverem anexados às AITs.
+          </p>
+
+          <table style={{ width: '100%', borderCollapse: 'collapse', borderRadius: 8, overflow: 'hidden', border: '1px solid var(--color-neutral-300)' }}>
+            <thead>
+              <tr>
+                <th style={thStyle}>Placa</th>
+                <th style={thStyle}>AIT</th>
+                <th style={thStyle}>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((r, i) => (
+                <tr key={r.id || i} style={{ background: i % 2 === 0 ? 'var(--color-neutral-200)' : '#fff' }}>
+                  <td style={tdStyle}>{r.placa}</td>
+                  <td style={tdStyle}>{r.ait}</td>
+                  <td style={tdStyle}>{['vencido','vencida'].includes(r.statusVariant) ? 'Vencido' : 'No prazo'}</td>
+                </tr>
+              ))}
+            </tbody>
+            <tfoot>
+              <tr>
+                <td colSpan={2} style={{ ...tdStyle, fontWeight: 700, padding: '10px 8px', background: '#fff' }}>Boletos disponíveis</td>
+                <td style={{ ...tdStyle, fontWeight: 700, padding: '10px 8px', background: '#fff' }}>{total}</td>
+              </tr>
+            </tfoot>
+          </table>
+
+          <p style={{ margin: 0, fontSize: 14, color: 'var(--color-neutral-600)', lineHeight: 1.5, fontFamily: ff }}>
+            O boleto estará disponível aqui em até 3 dias úteis.
+          </p>
+        </div>
+
+        {/* Footer */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 12 }}>
+          <button onClick={onClose}
+            style={{ padding: '0 16px', height: 40, borderRadius: 8, border: 'none', background: 'transparent', fontFamily: ff, fontSize: 14, fontWeight: 700, color: 'var(--color-neutral-900)', cursor: 'pointer' }}
+            onMouseEnter={e => e.currentTarget.style.background = 'var(--color-neutral-100)'}
+            onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+          >Fechar</button>
+          <button onClick={onAtualizar}
+            style={{ padding: '0 16px', height: 40, borderRadius: 8, border: '1.5px solid var(--color-neutral-400)', background: '#fff', fontFamily: ff, fontSize: 14, fontWeight: 600, color: 'var(--color-neutral-900)', cursor: 'pointer' }}
+            onMouseEnter={e => e.currentTarget.style.background = 'var(--color-neutral-100)'}
+            onMouseLeave={e => e.currentTarget.style.background = '#fff'}
+          >Atualizar boletos vencidos</button>
+          <button onClick={onConfirm} disabled={total === 0}
+            style={{ padding: '0 16px', height: 40, borderRadius: 8, border: 'none', background: total > 0 ? 'var(--color-primary-500)' : 'var(--color-neutral-300)', fontFamily: ff, fontSize: 14, fontWeight: 700, color: total > 0 ? '#fff' : 'var(--color-neutral-500)', cursor: total > 0 ? 'pointer' : 'default' }}
+            onMouseEnter={e => { if (total > 0) e.currentTarget.style.background = 'var(--color-primary-600)'; }}
+            onMouseLeave={e => { if (total > 0) e.currentTarget.style.background = 'var(--color-primary-500)'; }}
+          >Baixar boletos</button>
+        </div>
+      </div>
+    </div>,
+    document.body
   );
 }
 
@@ -8978,7 +9260,7 @@ function ModalBulkImprimirBoleto({ rows, onClose }) {
 }
 
 // RQT-13 — Baixar arquivos da multa: lista de tipos de anexo
-function ModalBulkDownload({ onClose }) {
+function ModalBulkDownload({ onClose, onConfirm }) {
   const ff = 'var(--font-family-primary)';
   const arquivos = ['Espelho da notificação', 'Espelho da penalidade', 'Comprovante de pagamento', 'Notificação de desconto'];
   const IcoFile = () => (
@@ -8987,7 +9269,7 @@ function ModalBulkDownload({ onClose }) {
     </svg>
   );
   return (
-    <_ModalBulkBase title="Baixar arquivos da multa" onClose={onClose}>
+    <_ModalBulkBase title="Baixar arquivos da multa" onClose={onClose} onConfirm={onConfirm || onClose}>
       <p style={{ margin: 0, fontSize: 14, color: 'var(--color-neutral-700)', lineHeight: '22px', fontFamily: ff }}>
         Em instantes você receberá um <strong>e-mail</strong> com os arquivos.
       </p>
@@ -9004,16 +9286,31 @@ function ModalBulkDownload({ onClose }) {
   );
 }
 
+function ModalBulkDownloadSucesso({ onClose }) {
+  const ff = 'var(--font-family-primary)';
+  return (
+    <_ModalBulkBase title="Baixar arquivos da multa" onClose={onClose} hideFooter>
+      <p style={{ margin: 0, fontSize: 14, color: 'var(--color-neutral-700)', lineHeight: '22px', fontFamily: ff }}>
+        O processo de envio foi iniciado. Dentro de alguns minutos você receberá um email contendo os arquivos.
+      </p>
+      <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+        <button onClick={onClose}
+          style={{ display: 'inline-flex', alignItems: 'center', padding: '0 16px', height: 40, borderRadius: 8, border: 'none', background: 'var(--color-primary-500)', fontFamily: ff, fontSize: 14, fontWeight: 700, color: '#fff', cursor: 'pointer' }}
+          onMouseEnter={e => e.currentTarget.style.background = 'var(--color-primary-600)'}
+          onMouseLeave={e => e.currentTarget.style.background = 'var(--color-primary-500)'}
+        >Fechar</button>
+      </div>
+    </_ModalBulkBase>
+  );
+}
+
 // Baixar formulário de indicação
 function ModalBulkBaixarFormulario({ onClose }) {
   const ff = 'var(--font-family-primary)';
   return (
     <_ModalBulkBase title="Baixar formulário de indicação" onClose={onClose}>
       <p style={{ margin: 0, fontSize: 14, color: 'var(--color-neutral-700)', lineHeight: '22px', fontFamily: ff }}>
-        Em instantes você receberá um <strong>e-mail</strong> com o formulário de indicação de condutor.
-      </p>
-      <p style={{ margin: 0, fontSize: 13, color: 'var(--color-neutral-500)', lineHeight: '20px', fontFamily: ff }}>
-        Se a multa já tiver um condutor vinculado, o formulário virá preenchido com os dados cadastrados.
+        O processo de envio foi iniciado. Dentro de alguns minutos você receberá um email contendo os arquivos.
       </p>
     </_ModalBulkBase>
   );
@@ -9098,7 +9395,7 @@ function ModalBulkBoleto40({ rows, onClose, onConfirm }) {
       }}>
         {/* Header */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <span style={{ fontSize: 16, fontWeight: 700, color: 'var(--color-neutral-900)', lineHeight: '24px' }}>Solicitar boleto 40% de desconto</span>
+          <span style={{ fontSize: 16, fontWeight: 700, color: 'var(--color-neutral-900)', lineHeight: '24px' }}>Solicitar boleto SNE 40%</span>
           <button onClick={onClose} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 24, height: 24, border: 'none', background: 'transparent', cursor: 'pointer', color: 'var(--color-neutral-700)', padding: 0, borderRadius: 4 }}
             onMouseEnter={e => e.currentTarget.style.background = 'var(--color-neutral-200)'}
             onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
@@ -9108,19 +9405,9 @@ function ModalBulkBoleto40({ rows, onClose, onConfirm }) {
         {/* Body */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12, overflowY: 'auto' }}>
           {/* Aviso 72h */}
-          <p style={{ margin: 0, fontSize: 16, color: 'var(--color-neutral-900)', lineHeight: 1.5, fontFamily: ff }}>
-            O boleto com 40% de desconto ficará disponível em até <strong>72 horas (3 dias)</strong> após a solicitação.
+          <p style={{ margin: 0, fontSize: 14, color: 'var(--color-neutral-900)', lineHeight: 1.6, fontFamily: ff }}>
+            Ao avançar, os boletos disponíveis serão solicitados e aparecerão na plataforma em até <strong>72 horas (3 dias)</strong>. Você receberá um aviso quando estiverem anexados às AITs.
           </p>
-
-          {/* Alerta: solicitação em andamento — sempre exibido para simular o cenário */}
-          <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, padding: '10px 12px', borderRadius: 8, background: 'var(--color-information-100)', border: '1px solid var(--color-information-300)', color: 'var(--color-information-800)' }}>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--color-information-600)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, marginTop: 1 }}>
-              <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
-            </svg>
-            <span style={{ fontSize: 13, fontWeight: 500, lineHeight: 1.5, fontFamily: ff }}>
-              1 multa selecionada possui uma solicitação em andamento e por isso será ignorada.
-            </span>
-          </div>
 
           {inelegiveis.length > 0 && (
             <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, padding: '10px 12px', borderRadius: 8, background: 'var(--color-warning-100)', border: '1px solid var(--color-warning-300)', color: 'var(--color-warning-800)' }}>
@@ -9141,18 +9428,24 @@ function ModalBulkBoleto40({ rows, onClose, onConfirm }) {
                 <tr>
                   <th style={thStyle}>Placa</th>
                   <th style={thStyle}>AIT</th>
-                  <th style={{ ...thStyle, textAlign: 'right' }}>Valor</th>
+                  <th style={thStyle}>Status</th>
                 </tr>
               </thead>
               <tbody>
-                {elegiveis.map((r, i) => (
+                {rows.map((r, i) => (
                   <tr key={r.id} style={{ background: i % 2 === 0 ? 'var(--color-neutral-200)' : '#fff' }}>
                     <td style={tdStyle}>{r.placa}</td>
                     <td style={tdStyle}>{r.ait}</td>
-                    <td style={{ ...tdStyle, textAlign: 'right', fontWeight: 700 }}>{r.valor}</td>
+                    <td style={tdStyle}>{isElegivel40(r) ? 'Disponível' : 'Não disponível no SNE'}</td>
                   </tr>
                 ))}
               </tbody>
+              <tfoot>
+                <tr>
+                  <td colSpan={2} style={{ ...tdStyle, fontWeight: 700, padding: '10px 8px' }}>Boletos disponíveis para requisição</td>
+                  <td style={{ ...tdStyle, fontWeight: 700, padding: '10px 8px' }}>{elegiveis.length}</td>
+                </tr>
+              </tfoot>
             </table>
           )}
         </div>
@@ -9169,7 +9462,7 @@ function ModalBulkBoleto40({ rows, onClose, onConfirm }) {
             style={{ display: 'inline-flex', alignItems: 'center', padding: '0 16px', height: 40, borderRadius: 8, border: 'none', background: elegiveis.length > 0 ? 'var(--color-primary-500)' : 'var(--color-neutral-500, #bebec0)', fontFamily: ff, fontSize: 14, fontWeight: 700, color: elegiveis.length > 0 ? '#fff' : 'var(--color-neutral-800)', cursor: elegiveis.length > 0 ? 'pointer' : 'not-allowed' }}
             onMouseEnter={e => { if (elegiveis.length > 0) e.currentTarget.style.background = 'var(--color-primary-600)'; }}
             onMouseLeave={e => { if (elegiveis.length > 0) e.currentTarget.style.background = 'var(--color-primary-500)'; }}
-          >Solicitar boleto ({elegiveis.length})</button>
+          >Solicitar Boleto SNE 40%</button>
         </div>
       </div>
     </div>,
@@ -9388,7 +9681,11 @@ function InfracoesScreen({ onNavigateToDetail, onNovaMulta }) {
   const [bulkBoleto40Open, setBulkBoleto40Open] = useInfState(false);
   const [bulkBoleto40SucessoOpen, setBulkBoleto40SucessoOpen] = useInfState(false);
   const [bulkAtualizarOpen, setBulkAtualizarOpen] = useInfState(false);
+  const [bulkAtualizarSucessoOpen, setBulkAtualizarSucessoOpen] = useInfState(false);
+  const [bulkBaixarSucessoOpen, setBulkBaixarSucessoOpen] = useInfState(false);
   const [bulkPagamentoOpen, setBulkPagamentoOpen] = useInfState(false);
+  const [bulkPagamentoVerifOpen, setBulkPagamentoVerifOpen] = useInfState(false);
+  const [bulkPagamentoSucessoOpen, setBulkPagamentoSucessoOpen] = useInfState(false);
   const [bulkVincularOpen, setBulkVincularOpen] = useInfState(false);
   const [bulkExcluirOpen, setBulkExcluirOpen] = useInfState(false);
   const [bulkReativarOpen, setBulkReativarOpen] = useInfState(false);
@@ -9397,10 +9694,12 @@ function InfracoesScreen({ onNavigateToDetail, onNovaMulta }) {
   const [bulkImprimirNotifOpen, setBulkImprimirNotifOpen] = useInfState(false);
   const [bulkStatusPagoOpen, setBulkStatusPagoOpen] = useInfState(false);
   const [bulkDownloadOpen, setBulkDownloadOpen] = useInfState(false);
+  const [bulkDownloadSucessoOpen, setBulkDownloadSucessoOpen] = useInfState(false);
   const [bulkDownloadBoletoOpen, setBulkDownloadBoletoOpen] = useInfState(false);
   const [bulkImprimirBoletoOpen, setBulkImprimirBoletoOpen] = useInfState(false);
   const [bulkNotifDescontadaOpen, setBulkNotifDescontadaOpen] = useInfState(false);
   const [pendingNotifDescontada, setPendingNotifDescontada] = useInfState(null); // 'sim' | 'nao'
+  const [bulkNotifDescontadaSelectOpen, setBulkNotifDescontadaSelectOpen] = useInfState(false);
   const [bulkStatusTratamentoOpen, setBulkStatusTratamentoOpen] = useInfState(false);
   const [pendingStatusTratamento, setPendingStatusTratamento] = useInfState(null); // { id, label }
   const [currentPage, setCurrentPage] = useInfState(1);
@@ -9840,6 +10139,7 @@ function InfracoesScreen({ onNavigateToDetail, onNovaMulta }) {
             onImprimirBoleto={() => setBulkImprimirBoletoOpen(true)}
             onConfirmNotifDescontada={(val) => { setPendingNotifDescontada(val); setBulkNotifDescontadaOpen(true); }}
             onConfirmStatusTratamento={(id, label) => { setPendingStatusTratamento({ id, label }); setBulkStatusTratamentoOpen(true); }}
+            onNotifDescontadaSelect={() => setBulkNotifDescontadaSelectOpen(true)}
             selectedRowsData={selectedRowsData} />
 
           {/* Cards — filtrados pelo chip ativo, ordenados e paginados */}
@@ -10179,10 +10479,12 @@ function InfracoesScreen({ onNavigateToDetail, onNovaMulta }) {
           statusText="Selecionadas"
           valor={selectedRowsData[0]?.valor || '—'}
           onClose={() => setBulkAtualizarOpen(false)}
-          onConfirm={() => {
-            setBulkAtualizarOpen(false);
-            window.showBulkSnackbar && window.showBulkSnackbar(`Atualização de boleto solicitada para ${selectedRowsData.length} multa${selectedRowsData.length !== 1 ? 's' : ''}`);
-          }} />
+          onConfirm={() => { setBulkAtualizarOpen(false); setBulkAtualizarSucessoOpen(true); }} />
+      )}
+
+      {bulkAtualizarSucessoOpen && ReactDOM.createPortal(
+        <ModalAtualizarBoletoSucesso onClose={() => setBulkAtualizarSucessoOpen(false)} />,
+        document.body
       )}
 
       {bulkPagamentoOpen && (
@@ -10190,10 +10492,15 @@ function InfracoesScreen({ onNavigateToDetail, onNovaMulta }) {
           rows={selectedRowsData}
           row={selectedRowsData[0] || null}
           onClose={() => setBulkPagamentoOpen(false)}
-          onConfirm={() => {
-            setBulkPagamentoOpen(false);
-            window.showBulkSnackbar && window.showBulkSnackbar(`Pagamento em lote solicitado para ${selectedRowsData.length} multa${selectedRowsData.length !== 1 ? 's' : ''}`);
-          }} />
+          onConfirm={() => { setBulkPagamentoOpen(false); setBulkPagamentoVerifOpen(true); }} />
+      )}
+      {bulkPagamentoVerifOpen && (
+        <ModalVerificacaoIdentidade
+          onClose={() => setBulkPagamentoVerifOpen(false)}
+          onConfirm={() => { setBulkPagamentoVerifOpen(false); setBulkPagamentoSucessoOpen(true); }} />
+      )}
+      {bulkPagamentoSucessoOpen && (
+        <ModalPagamentoSucesso onClose={() => setBulkPagamentoSucessoOpen(false)} />
       )}
 
       {bulkVincularOpen && window.ModalVincularCondutor && ReactDOM.createPortal(
@@ -10250,11 +10557,26 @@ function InfracoesScreen({ onNavigateToDetail, onNovaMulta }) {
       )}
 
       {bulkDownloadOpen && (
-        <ModalBulkDownload onClose={() => setBulkDownloadOpen(false)} />
+        <ModalBulkDownload
+          onClose={() => setBulkDownloadOpen(false)}
+          onConfirm={() => { setBulkDownloadOpen(false); setBulkDownloadSucessoOpen(true); }}
+        />
+      )}
+      {bulkDownloadSucessoOpen && (
+        <ModalBulkDownloadSucesso onClose={() => setBulkDownloadSucessoOpen(false)} />
       )}
 
       {bulkDownloadBoletoOpen && (
-        <ModalBulkBaixarBoleto rows={selectedRowsData} onClose={() => setBulkDownloadBoletoOpen(false)} />
+        <ModalBulkBaixarBoleto
+          rows={selectedRowsData}
+          onClose={() => setBulkDownloadBoletoOpen(false)}
+          onAtualizar={() => { setBulkDownloadBoletoOpen(false); setBulkAtualizarOpen(true); }}
+          onSolicitarBoleto40={() => { setBulkDownloadBoletoOpen(false); setBulkBoleto40Open(true); }}
+          onConfirm={() => { setBulkDownloadBoletoOpen(false); setBulkBaixarSucessoOpen(true); }}
+        />
+      )}
+      {bulkBaixarSucessoOpen && (
+        <ModalBaixarBoletoSucesso onClose={() => setBulkBaixarSucessoOpen(false)} />
       )}
 
       {bulkImprimirBoletoOpen && (
@@ -10270,6 +10592,15 @@ function InfracoesScreen({ onNavigateToDetail, onNovaMulta }) {
             const label = pendingNotifDescontada === 'sim' ? 'Sim' : 'Não';
             window.showBulkSnackbar && window.showBulkSnackbar(`Notificação descontada registrada como ${label}`);
             setPendingNotifDescontada(null);
+          }} />
+      )}
+
+      {bulkNotifDescontadaSelectOpen && (
+        <ModalBulkNotifDescontadaSelect
+          onClose={() => setBulkNotifDescontadaSelectOpen(false)}
+          onConfirm={(opcao) => {
+            window.showBulkSnackbar && window.showBulkSnackbar('Alterado com sucesso');
+            setBulkNotifDescontadaSelectOpen(false);
           }} />
       )}
 
@@ -12030,7 +12361,7 @@ function CondutorMoreDropdown({ onClose, anchorRect, canVincular, temCondutor, o
   );
 }
 
-function MoreDropdown({ onClose, anchorRect, onSolicitarBoleto, onAtualizarBoleto, onEditarPerfil, onSnackbar, onInativar }) {
+function MoreDropdown({ onClose, anchorRect, onSolicitarBoleto, onAtualizarBoleto, onEditarPerfil, onSnackbar, onInativar, tipo }) {
   const [subOpen, setSubOpen] = useDetState(false);
   const [statusSelected, setStatusSelected] = useDetState('nao_tratada');
 
@@ -12090,7 +12421,7 @@ function MoreDropdown({ onClose, anchorRect, onSolicitarBoleto, onAtualizarBolet
         <div style={{ padding: '10px 8px', display: 'flex', flexDirection: 'column', gap: 2 }}>
           <MenuItem icon={<DetIconDownload />}  label="Baixar boleto"                  onClick={() => { onClose(); onSnackbar && onSnackbar('Boleto enviado por e-mail com sucesso'); }} />
           <MenuItem icon={<DetIconRefresh />}   label="Atualizar boleto"               onClick={() => { onClose(); if (onAtualizarBoleto) onAtualizarBoleto(); }} />
-          <MenuItem icon={<DetIconBarcode />}   label="Solicitar boleto 40%"           onClick={() => { onClose(); if (onSolicitarBoleto) onSolicitarBoleto(); }} />
+          {tipo !== 'Notificação' && <MenuItem icon={<DetIconBarcode />}   label="Solicitar boleto 40%"           onClick={() => { onClose(); if (onSolicitarBoleto) onSolicitarBoleto(); }} />}
 
           {/* Status de tratamento — sub-menu trigger */}
           <div style={{ position: 'relative' }}
@@ -12317,7 +12648,7 @@ function SnackbarCondutorVinculado({ onClose }) {
 
   return ReactDOM.createPortal(
     <div style={{
-      position: 'fixed', top: 24, left: '50%', transform: 'translateX(-50%)', zIndex: 20000,
+      position: 'fixed', top: '24px', left: '50%', transform: 'translateX(-50%)', zIndex: 20000,
       display: 'flex', alignItems: 'flex-start', gap: 12,
       background: 'var(--color-success-100, #e8f9f2)',
       borderRadius: 12, padding: 12, minWidth: 280,
@@ -12517,7 +12848,7 @@ function SnackbarAnexoAdicionado({ onClose }) {
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
   );
   return ReactDOM.createPortal(
-    <div style={{ position: 'fixed', top: 24, left: '50%', transform: 'translateX(-50%)', zIndex: 20000, display: 'flex', alignItems: 'flex-start', gap: 12, background: 'var(--color-success-100,#e8f9f2)', borderRadius: 12, padding: 12, minWidth: 280, fontFamily: 'var(--font-family-primary)', boxShadow: '2px 4px 24px rgba(0,0,0,0.16)' }}>
+    <div style={{ position: 'fixed', top: '24px', left: '50%', transform: 'translateX(-50%)', zIndex: 20000, display: 'flex', alignItems: 'flex-start', gap: 12, background: 'var(--color-success-100,#e8f9f2)', borderRadius: 12, padding: 12, minWidth: 280, fontFamily: 'var(--font-family-primary)', boxShadow: '2px 4px 24px rgba(0,0,0,0.16)' }}>
       <IcoCheck />
       <span style={{ flex: 1, fontSize: 14, fontWeight: 700, color: 'var(--color-success-900,#084c30)', lineHeight: '21px' }}>Anexo adicionado com sucesso!</span>
       <button onClick={onClose} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 20, height: 20, border: 'none', background: 'transparent', cursor: 'pointer', color: 'var(--color-neutral-600)', padding: 0, flexShrink: 0 }}><IcoX /></button>
@@ -12603,7 +12934,7 @@ function SnackbarAnexoExcluido({ onClose }) {
     </svg>
   );
   return ReactDOM.createPortal(
-    <div style={{ position: 'fixed', top: 24, left: '50%', transform: 'translateX(-50%)', zIndex: 20000, display: 'flex', alignItems: 'flex-start', gap: 12, background: 'var(--color-success-100,#e8f9f2)', borderRadius: 12, padding: 12, minWidth: 280, fontFamily: 'var(--font-family-primary)', boxShadow: '2px 4px 24px rgba(0,0,0,0.16)' }}>
+    <div style={{ position: 'fixed', top: '24px', left: '50%', transform: 'translateX(-50%)', zIndex: 20000, display: 'flex', alignItems: 'flex-start', gap: 12, background: 'var(--color-success-100,#e8f9f2)', borderRadius: 12, padding: 12, minWidth: 280, fontFamily: 'var(--font-family-primary)', boxShadow: '2px 4px 24px rgba(0,0,0,0.16)' }}>
       <IcoCheck />
       <span style={{ flex: 1, fontSize: 14, fontWeight: 700, color: 'var(--color-success-900,#084c30)', lineHeight: '21px' }}>Anexo excluído com sucesso!</span>
       <button onClick={onClose} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 20, height: 20, border: 'none', background: 'transparent', cursor: 'pointer', color: 'var(--color-neutral-600)', padding: 0, flexShrink: 0 }}><IcoX /></button>
@@ -12818,6 +13149,7 @@ function AITDetail({ aitId, onBack, onEditarPerfil }) {
                 onEditarPerfil={onEditarPerfil}
                 onSnackbar={(msg) => setDetSnackMsg(msg)}
                 onInativar={() => setDetInativarOpen(true)}
+                tipo={ait.tipo}
               />}
             </div>
           </div>
@@ -13645,7 +13977,7 @@ function AITDetail({ aitId, onBack, onEditarPerfil }) {
       setTimeout(() => setDetSnackMsg(null), 4000);
       return ReactDOM.createPortal(
         <div style={{
-          position: 'fixed', top: 24, left: '50%', transform: 'translateX(-50%)',
+          position: 'fixed', top: '24px', left: '50%', transform: 'translateX(-50%)',
           background: '#e8f9f2', border: '1px solid #15be78', borderRadius: 10,
           padding: '12px 20px', display: 'flex', alignItems: 'center', gap: 10,
           boxShadow: '0 4px 20px rgba(0,0,0,0.12)', zIndex: 99999,
@@ -13664,7 +13996,7 @@ function AITDetail({ aitId, onBack, onEditarPerfil }) {
       setTimeout(() => setObsSnack(false), 4000);
       return ReactDOM.createPortal(
         <div style={{
-          position: 'fixed', top: 24, left: '50%', transform: 'translateX(-50%)',
+          position: 'fixed', top: '24px', left: '50%', transform: 'translateX(-50%)',
           background: '#e8f9f2', border: '1px solid #15be78', borderRadius: 10,
           padding: '12px 20px', display: 'flex', alignItems: 'center', gap: 10,
           boxShadow: '0 4px 20px rgba(0,0,0,0.12)', zIndex: 99999,

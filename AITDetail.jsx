@@ -1558,7 +1558,7 @@ function StatusTratamentoIcon({ icon, bg, color }) {
   );
 }
 
-function MoreDropdown({ onClose, anchorRect }) {
+function MoreDropdown({ onClose, anchorRect, tipo }) {
   const [subOpen, setSubOpen] = useDetState(false);
   const [statusSelected, setStatusSelected] = useDetState('nao_tratada');
 
@@ -1618,7 +1618,7 @@ function MoreDropdown({ onClose, anchorRect }) {
         <div style={{ padding: '10px 8px', display: 'flex', flexDirection: 'column', gap: 2 }}>
           <MenuItem icon={<DetIconDownload />}  label="Baixar boleto"                  onClick={onClose} />
           <MenuItem icon={<DetIconRefresh />}   label="Atualizar boleto"               onClick={onClose} />
-          <MenuItem icon={<DetIconBarcode />}   label="Solicitar boleto 40%"               onClick={onClose} />
+          {tipo !== 'Notificação' && <MenuItem icon={<DetIconBarcode />}   label="Solicitar boleto 40%"               onClick={onClose} />}
 
           {/* Status de tratamento — sub-menu trigger */}
           <div style={{ position: 'relative' }}
@@ -1821,7 +1821,7 @@ function AITDetail({ aitId, onBack }) {
                 onMouseEnter={e => { if (!moreMenuOpen) e.currentTarget.style.background = 'var(--color-neutral-200)'; }}
                 onMouseLeave={e => { if (!moreMenuOpen) e.currentTarget.style.background = 'var(--color-neutral-100)'; }}
               ><DetIconMoreVert /></button>
-              {moreMenuOpen && <MoreDropdown onClose={() => setMoreMenuOpen(false)} anchorRect={moreAnchorRect} />}
+              {moreMenuOpen && <MoreDropdown onClose={() => setMoreMenuOpen(false)} anchorRect={moreAnchorRect} tipo={ait.tipo} />}
             </div>
           </div>
 

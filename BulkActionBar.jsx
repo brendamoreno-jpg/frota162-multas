@@ -45,8 +45,14 @@ const BulkIconDownload = () => (
 );
 const BulkIconCreditCard = () => (
   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <rect x="1" y="4" width="22" height="16" rx="2" ry="2"/>
-    <line x1="1" y1="10" x2="23" y2="10"/>
+    <path d="M3 5v14"/><path d="M8 5v14"/><path d="M12 5v14"/><path d="M17 5v14"/><path d="M21 5v14"/>
+  </svg>
+);
+const BulkIconNotifDescontada = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <rect x="2" y="5" width="20" height="14" rx="2"/>
+    <line x1="2" y1="10" x2="22" y2="10"/>
+    <polyline points="12 14 12 19"/><polyline points="9 16 12 13 15 16"/>
   </svg>
 );
 const BulkIconXCircle = () => (
@@ -363,18 +369,9 @@ function CondutorItems({ activeTab, selectionType, notifDescontada, setNotifDesc
   if (showOn(activeTab, '3tabs')) {
     items.push({ icon: <BulkIconPrint/>, label: 'Imprimir notificação de desconto' });
   }
-  // Notificação descontada do condutor — 3 tabs (toggle Sim/Não)
+  // Notificação descontada do condutor
   if (showOn(activeTab, '3tabs')) {
-    items.push({
-      icon: <BulkIconCheck/>, label: 'Notificação descontada — Sim',
-      checked: notifDescontada === 'sim',
-      onClick: () => setNotifDescontada(notifDescontada === 'sim' ? null : 'sim'),
-    });
-    items.push({
-      icon: <BulkIconXCircle/>, label: 'Notificação descontada — Não',
-      checked: notifDescontada === 'nao',
-      onClick: () => setNotifDescontada(notifDescontada === 'nao' ? null : 'nao'),
-    });
+    items.push({ icon: <BulkIconNotifDescontada/>, label: 'Notificação descontada do condutor' });
   }
   return items;
 }
